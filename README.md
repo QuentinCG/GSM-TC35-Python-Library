@@ -148,8 +148,9 @@ print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
     * [NORMAL] Delete {all/not read/read} SMS
     * [ENHANCEMENT] Get list of stored operators in the module
     * [ENHANCEMENT] Integrate sleep mode
-  - Add manifest and setup.py to install this library really fast
-  - Improve error handling (minimize waiting time when GSM module answers error value)
+  - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
+  - [ENHANCEMENT] Update the __init__.py file
+  - [ENHANCEMENT] Improve error handling (minimize waiting time when GSM module answers error value)
 
 
 ## License
