@@ -8,7 +8,7 @@ It is multi-platform and compatible with python 2.7+ and 3+.
 Most functionalities should work with other GSM module using AT commands.
 
 
-<img src="device.png" width="400">
+<img src="TC35_module.jpg" width="400">
 
 
 ## Functionalities
