@@ -26,14 +26,14 @@
     - Get the current used operator
     - Get the signal strength (in dBm)
     - Set and get the date from the module internal clock
-
-  Python version: 2.7+ and 3+
-  Author: Quentin Comte-Gaz <quentin@comte-gaz.com>
-  Date: 29 July 2016
-  License: MIT License (contact me if too restrictive)
-  Copyright: Copyright (c) 2016 Quentin Comte-Gaz
-  Version: 0.1
 """
+__author__ = 'Quentin Comte-Gaz'
+__email__ = "quentin@comte-gaz.com"
+__license__ = "MIT License"
+__copyright__ = "Copyright Quentin Comte-Gaz (2016)"
+__python_version__ = "2.7+ and 3.+"
+__version__ = "0.1 (2016/07/29)"
+__status__ = "Usable but no SMS reception yet"
 
 import serial, serial.tools.list_ports
 import time, sys, getopt
