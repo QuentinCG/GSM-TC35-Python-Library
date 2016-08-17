@@ -22,6 +22,7 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Pick up call
   - Check if someone is calling
   - Check if there is a call in progress
+  - Check call status (call/ringing/...) and get the associated phone number
   - Get last call duration
   - Check if module is alive
   - Get IDs (manufacturer, model, revision, IMEI, IMSI)
@@ -37,7 +38,7 @@ Non-exhaustive list of shell commands:
   - Call
   - Hang up call
   - Pick up call
-  - Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock)
+  - Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock, call status and associated phone number, operator list)
 
 
 ## How to install (python script and shell)
@@ -122,6 +123,11 @@ print("Incoming call: "+str(gsm.isSomeoneCalling()))
 # Check if there is a call in progress
 print("Call in progress: "+str(gsm.isCallInProgress()))
 
+# Check if someone is calling, if a call is in progress, dialing and the associated phone number
+call_state, phone_number = gsm.getCurrentCallState()
+print("Call status: "+str(call_state)+" (associated phone number: "+str(phone_number)+")")
+print("(-1=No call, 0=Call active, 1=Held, 2=Dialing, 3=Alerting, 4=Incoming, 5=Waiting)")
+
 # Set module clock to current date
 print("Clock set: "+gsm.setCurrentDateToInternalClock())
 
@@ -145,7 +151,6 @@ print("List of operators: "+str(gsm.getOperatorNames()))
 ##TODO list
 
   - Add functionalities (class + command line):
-    * [CRITICAL] Get phone number of incoming call and current call (in progress, not optimized at all)
     * [CRITICAL] Get {all/not read/read} SMS
     * [NORMAL] Delete {all/not read/read} SMS
     * [ENHANCEMENT] Integrate sleep mode

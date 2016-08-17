@@ -59,6 +59,16 @@ class GSMTC35:
     UNREAD_SMS = "REC UNREAD"
     READ_SMS = "REC READ"
 
+  class eCall:
+    NOCALL = -1
+    ACTIVE = 0
+    HELD = 1
+    DIALING = 2
+    ALERTING = 3
+    INCOMING = 4
+    WAITING = 5
+
+
   def __init__(self):
     """Initialize the GSM module class with undefined serial connection"""
     self.__initialized = False
@@ -674,22 +684,42 @@ class GSMTC35:
 
     return call_duration
 
-  # Development in progress
-  """
-  def getFirstIncomingPhoneNumber(self):
-    # ONLY WHEN RINGING FOR NOW
-    # TODO: MUST CHANGE THIS USING AT+CLCC --> +CLCC: 1,1,4,0,0,"+33604028611",145 <-- (call ringing)
-    data = self.__getNotEmptyLine(content="CLIP", additional_timeout=0)
-    # Example of "data" value: +CLIP: "+33601234567",145,,,,0
-    index_begin_phone_number = data.find("\"")
-    if index_begin_phone_number >= 0 and len(data) > index_begin_phone_number + 1:
-      data = data[index_begin_phone_number+1:]
-      index_end_phone_number = data.find("\"")
-      if index_end_phone_number > 0:
-        data = data[:index_end_phone_number]
 
-    return data
-  """
+  def getCurrentCallState(self):
+    """Check the current call state and get potential phone number
+
+    return: (GSMTC35.eCall, string) Return the call state (NOCALL = -1, ACTIVE = 0,
+                                    HELD = 1, DIALING = 2, ALERTING = 3, INCOMING = 4,
+                                    WAITING = 5) followed by the potential phone
+                                    number (empty if not found)
+    """
+    data = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CLCC",
+                                            content="+CLCC:", error_result=self.__RETURN_OK)
+    call_state = GSMTC35.eCall.NOCALL
+    phone = ""
+    if len(data) > 8:
+      if data[:7] == "+CLCC: ":
+        data = data[7:]
+        split_list = data.split(",")
+        if len(split_list) >= 3:
+          # Get call state (3th element from the list)
+          try:
+            call_state = int(split_list[2])
+          except ValueError:
+            return call_state, phone
+
+          # Get the phone number if it exists
+          if len(split_list) >= 6:
+            phone = split_list[5]
+            phone_lengh = len(phone)
+            if phone_lengh > 1:
+              if phone[0] == '"':
+                phone = phone[1:]
+              phone_lengh = len(phone)
+              if phone_lengh >= 1:
+                if phone[phone_lengh-1] == '"':
+                  phone = phone[:phone_lengh-1]
+    return call_state, phone
 
 
   ################################ PIN FUNCTIONS ###############################
@@ -1036,6 +1066,31 @@ def main():
           operators = operators + ", "
         operators = operators + operator
       print("List of stored operators: "+operators)
+
+      call_state, phone_number = gsm.getCurrentCallState()
+      str_call_state = ""
+      if call_state == GSMTC35.eCall.NOCALL:
+        str_call_state = "No call"
+      elif call_state == GSMTC35.eCall.ACTIVE:
+        str_call_state = "Call in progress"
+      elif call_state == GSMTC35.eCall.HELD:
+        str_call_state = "Held call"
+      elif call_state == GSMTC35.eCall.DIALING:
+        str_call_state = "Dialing in progress"
+      elif call_state == GSMTC35.eCall.ALERTING:
+        str_call_state = "Alerting"
+      elif call_state == GSMTC35.eCall.INCOMING:
+        str_call_state = "Incoming call (waiting you to pick it up)"
+      elif call_state == GSMTC35.eCall.WAITING:
+        str_call_state = "Waiting other phone to pick-up"
+      else:
+        str_call_state = "Can't get the state"
+
+      if phone_number != "":
+        print("Call status: "+str(str_call_state)+" (phone number: "+str(phone_number)+")")
+      else:
+        print("Call status: "+str(str_call_state))
+
       sys.exit(0)
   print("[ERROR] You must call one action, use '-h' to get more information.")
   sys.exit(1)
