@@ -397,10 +397,10 @@ class GSMTC35:
         # Get result without "+COPS: "
         result = result[7:]
         # Split remaining data from the line
-        splited_list = result.split(",")
-        if len(splited_list) >= 3:
+        split_list = result.split(",")
+        if len(split_list) >= 3:
           # Get the operator name (3th element from the list)
-          operator = splited_list[2]
+          operator = split_list[2]
           # Delete first and last '"' from the name (if exist)
           operator_lengh = len(operator)
           if operator_lengh > 1:
@@ -438,11 +438,11 @@ class GSMTC35:
       if result[:6] == "+CSQ: ":
         result = result[6:]
         # Split remaining data from the line
-        splited_list = result.split(",")
-        if len(splited_list) >= 1:
+        split_list = result.split(",")
+        if len(split_list) >= 1:
           # Get the received signal strength (1st element)
           try:
-            sig_strength = int(splited_list[0])
+            sig_strength = int(split_list[0])
           except ValueError:
             pass
 
@@ -597,7 +597,6 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CPAS",
                                               additional_timeout=wait_time_sec,
                                               content="+CPAS:")
-
     return ("3" in result)
 
 
@@ -608,7 +607,6 @@ class GSMTC35:
     """
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CPAS",
                                               content="+CPAS:")
-
     return ("4" in result)
 
 
