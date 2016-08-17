@@ -220,6 +220,37 @@ class GSMTC35:
     return self.__getNotEmptyLine(content, error_result, additional_timeout)
 
 
+  def __sendCmdAndGetFullResult(self, cmd, after="", additional_timeout=0,
+                                result=__RETURN_OK, error_result=__RETURN_ERROR):
+    """Send command to the GSM module and get all lines before {result}
+
+    Keyword arguments:
+      cmd -- (string) Command to send to the module (without eol)
+      after -- (string, optional) Data to send to the module after the end of line
+      additional_timeout -- (int, optional) Additional time (in sec) to wait the content to appear
+      result -- (string, optional) Data to wait from the GSM module (all lines will be returned BEFORE the line containing {result})
+      error_result -- (string) Line meaning an error occured (sent by the module)
+
+    return: ([string,]) All lines without the end of line (empty if nothing received or if an error occured)
+    """
+    self.__deleteAllRxData()
+    self.__sendLine(cmd, after)
+
+    val_result = []
+    while 1:
+      current_line = self.__getNotEmptyLine("", error_result, additional_timeout)
+      if current_line == "":
+        return val_result
+      if (result in current_line):
+        return val_result
+      elif (current_line == error_result):
+        return []
+      else:
+        val_result.append(current_line)
+
+    return val_result
+
+
   def __sendCmdAndCheckResult(self, cmd, after="", additional_timeout=0,
                               result=__RETURN_OK, error_result=__RETURN_ERROR):
     """Send command to the GSM module and wait specific result
@@ -421,6 +452,37 @@ class GSMTC35:
 
     return sig_strength
 
+
+  def getOperatorNames(self):
+    """Get list of operator names stored in the GSM module
+
+    return: ([string,]) List of operator names or empty list if an error occured
+    """
+    operators = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"COPN")
+    result = []
+
+    for operator in operators:
+      operator_name = ""
+      if len(operator) > 8:
+        if operator[:7] == "+COPN: ":
+          operator = operator[7:]
+          # Split remaining data from the line
+          split_list = operator.split(",")
+          if len(split_list) >= 2:
+            # Get the operator name (2nd element)
+            operator_name = split_list[1]
+            operator_lengh = len(operator_name)
+            if operator_lengh > 1:
+              if operator_name[0] == '"':
+                operator_name = operator_name[1:]
+              operator_lengh = len(operator_name)
+              if operator_lengh >= 1:
+                if operator_name[operator_lengh-1] == '"':
+                  operator_name = operator_name[:operator_lengh-1]
+      if operator_name != "":
+        result.append(operator_name)
+
+    return result
 
   ############################### TIME FUNCTIONS ###############################
   def setCurrentDateToInternalClock(self):
@@ -966,6 +1028,14 @@ def main():
         print("Signal strength: Wrong value")
       print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
       print("Last call duration: "+str(gsm.getLastCallDuration()))
+
+      list_operators = gsm.getOperatorNames()
+      operators = ""
+      for operator in list_operators:
+        if operators != "":
+          operators = operators + ", "
+        operators = operators + operator
+      print("List of stored operators: "+operators)
       sys.exit(0)
   print("[ERROR] You must call one action, use '-h' to get more information.")
   sys.exit(1)

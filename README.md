@@ -30,6 +30,7 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Get the current used operator
   - Get the signal strength (in dBm)
   - Set and get the date from the module internal clock
+  - Get list of operators
 
 Non-exhaustive list of shell commands:
   - Send SMS
@@ -137,6 +138,7 @@ if sig_strength != -1:
 else:
   print("Signal strength: Wrong value")
 print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
+print("List of operators: "+str(gsm.getOperatorNames()))
 ```
 
 
@@ -146,7 +148,6 @@ print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
     * [CRITICAL] Get phone number of incoming call and current call (in progress, not optimized at all)
     * [CRITICAL] Get {all/not read/read} SMS
     * [NORMAL] Delete {all/not read/read} SMS
-    * [ENHANCEMENT] Get list of stored operators in the module
     * [ENHANCEMENT] Integrate sleep mode
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
   - [ENHANCEMENT] Update the __init__.py file
