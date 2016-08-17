@@ -54,6 +54,11 @@ class GSMTC35:
   __RETURN_ERROR = "ERROR"
   __CTRL_Z = "\x1a"
 
+  class eSMS:
+    ALL_SMS = "ALL"
+    UNREAD_SMS = "REC UNREAD"
+    READ_SMS = "REC READ"
+
   def __init__(self):
     """Initialize the GSM module class with undefined serial connection"""
     self.__initialized = False
@@ -477,6 +482,21 @@ class GSMTC35:
                                         +phone_number+"\"",
                                         after=msg+GSMTC35.__CTRL_Z,
                                         additional_timeout=network_delay_sec)
+
+
+  def deleteSpecificSMS(self, index):
+    """Delete SMS with specific index
+
+    Keyword arguments:
+      index -- (int) Index of the SMS to delete from the GSM module (can be found by reading SMS)
+
+   Note: Even if this function is not done for that: On some device, GSMTC35.eSMS.ALL_SMS,
+     GSMTC35.eSMS.UNREAD_SMS and GSMTC35.eSMS.READ_SMS may be used instead of
+     \s index to delete multiple SMS at once (not working for GSMTC35).
+
+    return: (bool) Delete successful
+    """
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGD="+str(index))
 
 
   ############################### CALL FUNCTIONS ###############################
