@@ -150,7 +150,6 @@ print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
     * [ENHANCEMENT] Integrate sleep mode
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
   - [ENHANCEMENT] Update the __init__.py file
-  - [ENHANCEMENT] Improve error handling (minimize waiting time when GSM module answers error value)
 
 
 ## License

@@ -51,6 +51,7 @@ class GSMTC35:
   __BASE_AT = "AT"
   __NORMAL_AT = "AT+"
   __RETURN_OK = "OK"
+  __RETURN_ERROR = "ERROR"
   __CTRL_Z = "\x1a"
 
   def __init__(self):
@@ -111,7 +112,7 @@ class GSMTC35:
 
 
   ######################### INTERNAL UTILITY FUNCTIONS #########################
-  def __readline(self):
+  def __readLine(self):
     """Read one line from the serial port (not blocking)
 
     return: (string) Line without the end of line (empty if nothing received)
@@ -139,39 +140,46 @@ class GSMTC35:
     self.__serial.read(bytesToRead)
 
 
-  def __waitDataContains(self, content, additional_timeout=0):
+  def __waitDataContains(self, content, error_result, additional_timeout=0):
     """Wait to receive specific data from the serial port
 
     Keyword arguments:
       content -- (string) Data to wait from the serial port
+      error_result -- (string) Line meaning an error occured (sent by the module)
       additional_timeout -- (int) Additional time to wait the match (added with base timeout)
 
-    return: (bool) Is data received before timeout
+    return: (bool) Is data received before timeout (if \s error_result is received, False is returned)
     """
     start_time = time.time()
     while time.time() - start_time < self.__timeout_sec + additional_timeout:
       while self.__serial.inWaiting() > 0:
-        if content in self.__readline():
+        line = self.__readLine()
+        if content in line:
           return True
+        if error_result == line:
+          return False
       time.sleep(.100) # Wait 100ms if no data in the serial buffer
     return False
 
 
-  def __getNotEmptyLine(self, content="", additional_timeout=0):
+  def __getNotEmptyLine(self, content="", error_result=__RETURN_ERROR, additional_timeout=0):
     """Wait to receive a line containing at least {content} (or any char if {content} is empty)
 
     Keyword arguments:
       content -- (string) Data to wait from the serial port
+      error_result -- (string) Line meaning an error occured (sent by the module)
       additional_timeout -- (int) Additional time to wait the match (added with base timeout)
 
-    return: (string) Line received (without eol), empty if not found
+    return: (string) Line received (without eol), empty if not found or if an error occured
     """
     start_time = time.time()
     while time.time() - start_time < self.__timeout_sec + additional_timeout:
       while self.__serial.inWaiting() > 0:
-        line = self.__readline()
+        line = self.__readLine()
         if (content in line) and len(line) > 0:
           return line
+        if error_result == line:
+          return ""
       time.sleep(.100) # Wait 100ms if no data in the serial buffer
     return ""
 
@@ -190,7 +198,7 @@ class GSMTC35:
 
 
   def __sendCmdAndGetNotEmptyLine(self, cmd, after="", additional_timeout=0,
-                                  content=""):
+                                  content="", error_result=__RETURN_ERROR):
     """Send command to the GSM module and get line containing {content}
 
     Keyword arguments:
@@ -198,16 +206,17 @@ class GSMTC35:
       after -- (string, optional) Data to send to the module after the end of line
       additional_timeout -- (int, optional) Additional time (in sec) to wait the content to appear
       content -- (string, optional) Data to wait from the GSM module (line containing this will be returned
+      error_result -- (string) Line meaning an error occured (sent by the module)
 
-    return: (string) Line without the end of line containing {content} (empty if nothing received)
+    return: (string) Line without the end of line containing {content} (empty if nothing received or if an error occured)
     """
     self.__deleteAllRxData()
     self.__sendLine(cmd, after)
-    return self.__getNotEmptyLine(content, additional_timeout)
+    return self.__getNotEmptyLine(content, error_result, additional_timeout)
 
 
   def __sendCmdAndCheckResult(self, cmd, after="", additional_timeout=0,
-                              result=__RETURN_OK):
+                              result=__RETURN_OK, error_result=__RETURN_ERROR):
     """Send command to the GSM module and wait specific result
 
     Keyword arguments:
@@ -215,12 +224,13 @@ class GSMTC35:
       after -- (string, optional) Data to send to the module after the end of line
       additional_timeout -- (int, optional) Additional time (in sec) to wait the result
       result -- (string, optional) Data to wait from the GSM module
+      error_result -- (string) Line meaning an error occured (sent by the module)
 
     return: (bool) Command successful (result returned from the GSM module)
     """
     self.__deleteAllRxData()
     self.__sendLine(cmd, after)
-    return self.__waitDataContains(result, additional_timeout)
+    return self.__waitDataContains(result, error_result, additional_timeout)
 
 
   ######################## INFO AND UTILITY FUNCTIONS ##########################
@@ -241,7 +251,7 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CGMI")
     # Delete the "OK" of the request from the buffer
     if result != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
     return result
 
 
@@ -254,7 +264,7 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CGMM")
     # Delete the "OK" of the request from the buffer
     if result != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
     return result
 
 
@@ -267,7 +277,7 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CGMR")
     # Delete the "OK" of the request from the buffer
     if result != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
     return result
 
 
@@ -280,7 +290,7 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CGSN")
     # Delete the "OK" of the request from the buffer
     if result != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
     return result
 
 
@@ -293,7 +303,7 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CIMI")
     # Delete the "OK" of the request from the buffer
     if result != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
     return result
 
 
@@ -314,7 +324,7 @@ class GSMTC35:
     result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"^SMSO",
                                           result="MS OFF")
     # Delete the "OK" of the request from the buffer
-    self.__waitDataContains(content=self.__RETURN_OK)
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
     return result
 
 
@@ -357,7 +367,7 @@ class GSMTC35:
 
     # Delete last "OK" from buffer
     if operator != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return operator
 
@@ -392,7 +402,7 @@ class GSMTC35:
 
     # Delete last "OK" from buffer
     if sig_strength != -1:
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     # 99 means the GSM couldn't get the information, negative values are invalid
     if sig_strength >= 99 or sig_strength < 0:
@@ -447,7 +457,7 @@ class GSMTC35:
 
     # Delete last "OK" from buffer
     if date != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return date
 
@@ -578,7 +588,7 @@ class GSMTC35:
 
     # Delete last "OK" from buffer
     if call_duration != "":
-      self.__waitDataContains(content=self.__RETURN_OK)
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return call_duration
 
