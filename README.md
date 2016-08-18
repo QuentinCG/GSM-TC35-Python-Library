@@ -65,10 +65,10 @@ GSMTC35.py -h
 GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell!"
 
 # Get SMS
-GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL_SMS"
+GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
 
 # Delete SMS
-GSMTC35.py --serialPort COM4 --pin 1234 --deleteSMS "ALL_SMS"
+GSMTC35.py --serialPort COM4 --pin 1234 --deleteSMS "ALL"
 
 # Call
 GSMTC35.py --serialPort COM4 --pin 1234 --call +33601234567
