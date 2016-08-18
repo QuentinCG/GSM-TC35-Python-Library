@@ -26,6 +26,7 @@
     - Get the current used operator
     - Get the signal strength (in dBm)
     - Set and get the date from the module internal clock
+    - Get list of operators
 """
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
@@ -182,10 +183,10 @@ class GSMTC35:
 
     Keyword arguments:
       content -- (string) Data to wait from the serial port
-      error_result -- (string) Line meaning an error occured (sent by the module)
+      error_result -- (string) Line meaning an error occured (sent by the module), empty means not used
       additional_timeout -- (int) Additional time to wait the match (added with base timeout)
 
-    return: (bool) Is data received before timeout (if \s error_result is received, False is returned)
+    return: (bool) Is data received before timeout (if {error_result} is received, False is returned)
     """
     start_time = time.time()
     while time.time() - start_time < self.__timeout_sec + additional_timeout:
@@ -215,7 +216,7 @@ class GSMTC35:
         line = self.__readLine()
         if (content in line) and len(line) > 0:
           return line
-        if error_result == line:
+        if len(error_result) > 0 and (error_result == line):
           return ""
       time.sleep(.100) # Wait 100ms if no data in the serial buffer
     return ""
@@ -260,7 +261,7 @@ class GSMTC35:
       cmd -- (string) Command to send to the module (without eol)
       after -- (string, optional) Data to send to the module after the end of line
       additional_timeout -- (int, optional) Additional time (in sec) to wait the content to appear
-      result -- (string, optional) Data to wait from the GSM module (all lines will be returned BEFORE the line containing {result})
+      result -- (string, optional) Line to wait from the GSM module (all lines will be returned BEFORE the {result} line)
       error_result -- (string) Line meaning an error occured (sent by the module)
 
     return: ([string,]) All lines without the end of line (empty if nothing received or if an error occured)
@@ -273,9 +274,9 @@ class GSMTC35:
       current_line = self.__getNotEmptyLine("", error_result, additional_timeout)
       if current_line == "":
         return val_result
-      if (result in current_line):
+      if (result == current_line):
         return val_result
-      elif (current_line == error_result):
+      elif (len(error_result) > 0) and (current_line == error_result):
         return []
       else:
         val_result.append(current_line)
@@ -969,7 +970,7 @@ def main():
     print("[HELP] List of available serial ports:")
     ports = list(serial.tools.list_ports.comports())
     for p in ports:
-      print("[HELP] "+p)
+      print("[HELP] "+str(p))
     sys.exit(2)
 
   # Be sure PIN is initialized
