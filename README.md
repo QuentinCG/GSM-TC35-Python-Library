@@ -16,6 +16,8 @@ Most functionalities should work with other GSM module using AT commands.
 Non-exhaustive list of GSMTC35 class functionalities:
   - Check PIN state and enter PIN
   - Send SMS
+  - Receive SMS
+  - Delete SMS
   - Call
   - Re-call
   - Hang up call
@@ -35,6 +37,8 @@ Non-exhaustive list of GSMTC35 class functionalities:
 
 Non-exhaustive list of shell commands:
   - Send SMS
+  - Receive SMS
+  - Delete SMS
   - Call
   - Hang up call
   - Pick up call
@@ -59,6 +63,12 @@ GSMTC35.py -h
 
 # Send SMS
 GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell!"
+
+# Get SMS
+GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL_SMS"
+
+# Delete SMS
+GSMTC35.py --serialPort COM4 --pin 1234 --deleteSMS "ALL_SMS"
 
 # Call
 GSMTC35.py --serialPort COM4 --pin 1234 --call +33601234567
@@ -101,6 +111,17 @@ if gsm.isPinRequired():
 
 # Send SMS
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", "Hello from python script!!!")))
+
+# Show all received SMS
+rx_sms = gsm.getSMS()
+print("List of SMS:")
+for sms in rx_sms:
+  print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+        +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+        +"): "+str(sms["sms"]))
+
+# Delete all received SMS
+print("Delete all SMS: "+str(gsm.deleteSMS(GSMTC35.eSMS.ALL_SMS)))
 
 # Call
 print("Called: "+str(gsm.call("0601234567")))
@@ -151,8 +172,6 @@ print("List of operators: "+str(gsm.getOperatorNames()))
 ##TODO list
 
   - Add functionalities (class + command line):
-    * [CRITICAL] Get {all/not read/read} SMS
-    * [NORMAL] Delete {all/not read/read} SMS
     * [ENHANCEMENT] Integrate sleep mode
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
   - [ENHANCEMENT] Update the __init__.py file

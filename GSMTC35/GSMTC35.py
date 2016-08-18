@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-  GSM TC35 library
-
-  call, receive call, send SMS, receive SMS, enter the PIN,
+  GSM TC35 library: Call, receive call, send/receive/delete SMS, enter the PIN, ...
 
   It is also possible to use command line to easily use this class from
   shell (launch this python file with '-h' parameter to get more information).
@@ -12,6 +10,8 @@
   Non-exhaustive class functionality list:
     - Check PIN state and enter PIN
     - Send SMS
+    - Get SMS
+    - Delete SMS
     - Call
     - Re-call
     - Hang up call
@@ -34,10 +34,11 @@ __license__ = "MIT License"
 __copyright__ = "Copyright Quentin Comte-Gaz (2016)"
 __python_version__ = "2.7+ and 3.+"
 __version__ = "0.1 (2016/07/29)"
-__status__ = "Usable but no SMS reception yet"
+__status__ = "Usable for any project"
 
 import serial, serial.tools.list_ports
 import time, sys, getopt
+import logging
 
 class GSMTC35:
   """GSM TC35 class
@@ -302,6 +303,21 @@ class GSMTC35:
     return self.__waitDataContains(result, error_result, additional_timeout)
 
 
+  def __deleteSpecificSMS(self, index):
+    """Delete SMS with specific index
+
+    Keyword arguments:
+      index -- (int) Index of the SMS to delete from the GSM module (can be found by reading SMS)
+
+    Note: Even if this function is not done for that: On some device, GSMTC35.eSMS.ALL_SMS,
+      GSMTC35.eSMS.UNREAD_SMS and GSMTC35.eSMS.READ_SMS may be used instead of
+      {index} to delete multiple SMS at once (not working for GSMTC35).
+
+    return: (bool) Delete successful
+    """
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGD="+str(index))
+
+
   ######################## INFO AND UTILITY FUNCTIONS ##########################
   def isAlive(self):
     """Check if the GSM module is alive (answers to AT commands)
@@ -554,19 +570,101 @@ class GSMTC35:
                                         additional_timeout=network_delay_sec)
 
 
-  def deleteSpecificSMS(self, index):
-    """Delete SMS with specific index
+  def getSMS(self, sms_type=eSMS.ALL_SMS):
+    """Get SMS
 
     Keyword arguments:
-      index -- (int) Index of the SMS to delete from the GSM module (can be found by reading SMS)
+      sms_type -- (string) Type of SMS to get (possible values: GSMTC35.eSMS.ALL_SMS,
+                           GSMTC35.eSMS.UNREAD_SMS or GSMTC35.eSMS.READ_SMS)
 
-   Note: Even if this function is not done for that: On some device, GSMTC35.eSMS.ALL_SMS,
-     GSMTC35.eSMS.UNREAD_SMS and GSMTC35.eSMS.READ_SMS may be used instead of
-     \s index to delete multiple SMS at once (not working for GSMTC35).
-
-    return: (bool) Delete successful
+    return: ([{"index":, "status":, "phone_number":, "date":, "time":, "sms":},]) List of requested SMS (list of dictionaries)
+            Explanation of dictionaries content:
+              - index (int) Index of the SMS from the GSM module point of view
+              - status (GSMTC35.eSMS) SMS type
+              - phone_number (string) Phone number which send the SMS
+              - date (string) Date SMS was received
+              - time (string) Time SMS was received
+              - sms (string) Content of the SMS
     """
-    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGD="+str(index))
+    all_lines_retrieved = False
+    while not all_lines_retrieved:
+      lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL=\""+str(sms_type)+"\"", error_result="")
+      # Make sure the "OK" sent by the module is not part of an SMS
+      if len(lines) > 0:
+        additional_line = self.__getNotEmptyLine("", "", 0)
+        if len(additional_line) > 0:
+          lines.append(self.__RETURN_OK) # Lost SMS part
+          lines.append(additional_line)
+        else:
+          all_lines_retrieved = True
+      else:
+        all_lines_retrieved = True
+    # Parse SMS from lines
+    sms = {}
+    all_sms = []
+    for line in lines:
+      if line[:7] == "+CMGL: ":
+        if bool(sms):
+          all_sms.append(sms)
+        sms = {}
+        # Get result without "+CMGL: "
+        line = line[7:]
+        # Split remaining data from the line
+        split_list = line.split(",")
+        if len(split_list) >= 6:
+          try:
+            sms["index"] = int(split_list[0])
+            sms["status"] = GSMTC35.__deleteQuote(split_list[1])
+            sms["phone_number"] = GSMTC35.__deleteQuote(split_list[2])
+            sms["date"] = GSMTC35.__deleteQuote(split_list[4])
+            sms["time"] = GSMTC35.__deleteQuote(split_list[5])
+            sms["sms"] = ""
+          except ValueError:
+            # The line is not correct --> the SMS is not valid
+            sms = {}
+      elif bool(sms):
+        if ("sms" in sms) and (sms["sms"] != ""):
+          sms["sms"] = sms["sms"] + "\n" + line
+        else:
+          sms["sms"] = line
+      else:
+        logging.error("\""+line+"\" not usable")
+
+    # Last SMS must also be stored
+    if ("index" in sms) and ("sms" in sms) and not (sms in all_sms):
+      # An empty line may appear in last SMS due to GSM module communication
+      if (len(sms["sms"]) >= 1) and (sms["sms"][len(sms["sms"])-1:len(sms["sms"])] == "\n"):
+        sms["sms"] = sms["sms"][:len(sms["sms"])-1]
+      all_sms.append(sms)
+
+    return all_sms
+
+
+  def deleteSMS(self, sms_type = eSMS.ALL_SMS):
+    """Delete multiple or one SMS
+
+    Keyword arguments:
+      sms_type -- (string or int, optional) Type of SMS to delete (possible values:
+                    index of the SMS to delete (integer), GSMTC35.eSMS.ALL_SMS,
+                    GSMTC35.eSMS.UNREAD_SMS or GSMTC35.eSMS.READ_SMS)
+
+    return: (bool) All SMS of {sms_type} type are deleted
+    """
+    # Case sms_type is an index:
+    try:
+      return self.__deleteSpecificSMS(int(sms_type))
+    except ValueError:
+      pass
+
+    # Case SMS index must be found to delete them
+    all_delete_ok = True
+
+    all_sms_to_delete = self.getSMS(sms_type)
+    for sms in all_sms_to_delete:
+      sms_delete_ok = self.__deleteSpecificSMS(sms["index"])
+      all_delete_ok = all_delete_ok and sms_delete_ok
+
+    return all_delete_ok
 
 
   ############################### CALL FUNCTIONS ###############################
@@ -887,6 +985,42 @@ def __help(func="", filename=__file__):
   elif func == "":
     print("SEND SMS (-s, --sendSMS): Send SMS")
 
+  # Get SMS
+  if func in ("g", "getsms"):
+    print("Get SMS\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -g [sms type]\r\n"
+          +filename+" --getSMS [sms type]\r\n"
+          +"SMS Type: \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+          +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""
+          +str(GSMTC35.eSMS.READ_SMS)+"\"\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -g \""+str(GSMTC35.eSMS.UNREAD_SMS)+"\"\r\n"
+          +filename+" --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n")
+    return
+  elif func == "":
+    print("GET SMS (-g, --getSMS): Get SMS")
+
+  # Delete SMS
+  if func in ("d", "deletesms"):
+    print("Delete SMS\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -d [sms type]\r\n"
+          +filename+" --deleteSMS [sms type]\r\n"
+          +"SMS Type: Index of the SMS (integer), \""+str(GSMTC35.eSMS.ALL_SMS)
+          +"\", \""+str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""
+          +str(GSMTC35.eSMS.READ_SMS)+"\"\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -d \""+str(GSMTC35.eSMS.UNREAD_SMS)+"\"\r\n"
+          +filename+" --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n")
+    return
+  elif func == "":
+    print("DELETE SMS (-d, --deleteSMS): Delete SMS")
+
   # Get information
   if func in ("-o", "--information"):
     print("Get information from module and network (IMEI, clock, operator, ...)\r\n"
@@ -906,6 +1040,8 @@ def __help(func="", filename=__file__):
           +" - Hang up call: "+filename+" --serialPort COM4 --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
           +" - Send SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\n"
+          +" - Get all SMS: "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
+          +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information")
 
     print("\r\nList of available serial ports:")
@@ -918,15 +1054,20 @@ def __help(func="", filename=__file__):
 def main():
   """Shell GSM utility function"""
 
+  logger = logging.getLogger()
+  logger.setLevel(logging.DEBUG)
+
   baudrate = 115200
   serial_port = ""
   pin = ""
 
   # Get options
   try:
-     opts, args = getopt.getopt(sys.argv[1:], "hactsniob:u:p:",
-                                ["baudrate=", "serialPort=", "pin=", "help", "isAlive", "call",
-                                 "hangUpCall", "isSomeoneCalling", "pickUpCall", "sendSMS", "information"])
+    opts, args = getopt.getopt(sys.argv[1:], "hactsdgniob:u:p:",
+                               ["baudrate=", "serialPort=", "pin=", "help",
+                                "isAlive", "call", "hangUpCall", "isSomeoneCalling",
+                                "pickUpCall", "sendSMS", "deleteSMS", "getSMS",
+                                "information"])
   except getopt.GetoptError as err:
     print("[ERROR] "+str(err))
     __help()
@@ -1020,6 +1161,28 @@ def main():
         sys.exit(1)
       print("SMS sent: "+str(gsm.sendSMS(str(args[0]), str(args[1]))))
       sys.exit(0)
+    elif o in ("-d", "--deleteSMS"):
+      if len(args) < 1:
+        print("[ERROR] You need to specify the type of SMS to delete")
+        print("[ERROR] Possible values: index of the SMS, \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+              +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""+str(GSMTC35.eSMS.READ_SMS)+"\"")
+        sys.exit(1)
+      print("SMS deleted: "+str(gsm.deleteSMS(str(args[0]))))
+      sys.exit(0)
+    elif o in ("-g", "--getSMS"):
+      if len(args) < 1:
+        print("[ERROR] You need to specify the type of SMS to get")
+        print("[ERROR] Possible values: \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+              +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""+str(GSMTC35.eSMS.READ_SMS)+"\"")
+        sys.exit(1)
+      received_sms = gsm.getSMS(str(args[0]))
+      print("List of SMS:")
+      for sms in received_sms:
+        print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+              +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+              +"): "+str(sms["sms"]))
+      sys.exit(0)
+
     elif o in ("-n", "--pickUpCall"):
       print("Picking up call...")
       print("Pick up call: "+str(gsm.pickUpCall()))
