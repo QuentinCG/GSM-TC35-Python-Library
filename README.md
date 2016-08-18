@@ -113,7 +113,7 @@ if gsm.isPinRequired():
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", "Hello from python script!!!")))
 
 # Show all received SMS
-rx_sms = gsm.getSMS()
+rx_sms = gsm.getSMS(GSMTC35.eSMS.ALL_SMS)
 print("List of SMS:")
 for sms in rx_sms:
   print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
