@@ -127,6 +127,28 @@ class GSMTC35:
 
 
   ######################### INTERNAL UTILITY FUNCTIONS #########################
+  def __deleteQuote(quoted_string):
+    """Delete first and last " or ' from {quoted_string}
+
+    Keyword arguments:
+      quoted_string -- (string) String to get rid of quotes
+
+    return: (string) {quoted_string} without quotes
+     """
+
+    str_lengh = len(quoted_string)
+    if str_lengh > 1:
+      if (quoted_string[0] == '"') or (quoted_string[0] == "'"):
+        # Delete first ' or "
+        quoted_string = quoted_string[1:]
+      str_lengh = len(quoted_string)
+      if str_lengh >= 1:
+        if (quoted_string[str_lengh-1] == '"') or (quoted_string[str_lengh-1] == "'"):
+            # Delete last ' or "
+          quoted_string = quoted_string[:str_lengh-1]
+    return quoted_string
+
+
   def __readLine(self):
     """Read one line from the serial port (not blocking)
 
@@ -399,17 +421,8 @@ class GSMTC35:
         # Split remaining data from the line
         split_list = result.split(",")
         if len(split_list) >= 3:
-          # Get the operator name (3th element from the list)
-          operator = split_list[2]
-          # Delete first and last '"' from the name (if exist)
-          operator_lengh = len(operator)
-          if operator_lengh > 1:
-            if operator[0] == '"':
-              operator = operator[1:]
-            operator_lengh = len(operator)
-            if operator_lengh >= 1:
-              if operator[operator_lengh-1] == '"':
-                operator = operator[:operator_lengh-1]
+          # Get the operator name without quote (3th element from the list)
+          operator = GSMTC35.__deleteQuote(split_list[2])
 
     # Delete last "OK" from buffer
     if operator != "":
@@ -479,20 +492,13 @@ class GSMTC35:
           # Split remaining data from the line
           split_list = operator.split(",")
           if len(split_list) >= 2:
-            # Get the operator name (2nd element)
-            operator_name = split_list[1]
-            operator_lengh = len(operator_name)
-            if operator_lengh > 1:
-              if operator_name[0] == '"':
-                operator_name = operator_name[1:]
-              operator_lengh = len(operator_name)
-              if operator_lengh >= 1:
-                if operator_name[operator_lengh-1] == '"':
-                  operator_name = operator_name[:operator_lengh-1]
+            # Get the operator name without quote (2nd element)
+            operator_name = GSMTC35.__deleteQuote(split_list[1])
       if operator_name != "":
         result.append(operator_name)
 
     return result
+
 
   ############################### TIME FUNCTIONS ###############################
   def setCurrentDateToInternalClock(self):
@@ -520,17 +526,8 @@ class GSMTC35:
     #Check result:
     if len(result) > 8:
       if result[:7] == "+CCLK: ":
-        # Get result without "+CCLK: "
-        date = result[7:]
-        # Delete first and last '"' from the date (if exist)
-        date_lengh = len(date)
-        if date_lengh > 1:
-          if date[0] == '"':
-            date = date[1:]
-          date_lengh = len(date)
-          if date_lengh >= 1:
-            if date[date_lengh-1] == '"':
-              date = date[:date_lengh-1]
+        # Get date result without "+CCLK: " and delete quote
+        date = GSMTC35.__deleteQuote(result[7:])
 
     # Delete last "OK" from buffer
     if date != "":
@@ -708,15 +705,7 @@ class GSMTC35:
 
           # Get the phone number if it exists
           if len(split_list) >= 6:
-            phone = split_list[5]
-            phone_lengh = len(phone)
-            if phone_lengh > 1:
-              if phone[0] == '"':
-                phone = phone[1:]
-              phone_lengh = len(phone)
-              if phone_lengh >= 1:
-                if phone[phone_lengh-1] == '"':
-                  phone = phone[:phone_lengh-1]
+            phone = GSMTC35.__deleteQuote(split_list[5])
     return call_state, phone
 
 
