@@ -172,7 +172,9 @@ print("List of operators: "+str(gsm.getOperatorNames()))
 ##TODO list
 
   - Add functionalities (class + command line):
+    * [ENHANCEMENT] Integrate contact handling (get-set contact and use it for SMS and phone calls)
     * [ENHANCEMENT] Integrate sleep mode
+  - [ENHANCEMENT] Add python demo forwarding all incoming SMS to specific email or phone number
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
   - [ENHANCEMENT] Update the __init__.py file
 
