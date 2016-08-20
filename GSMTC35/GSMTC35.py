@@ -128,14 +128,14 @@ class GSMTC35:
     if self.__serial.isOpen():
       # Disable echo from GSM device
       if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"E0"):
-        print("[WARNING] Can't disable echo mode (ATE0 command)")
+        logging.debug("Can't disable echo mode (ATE0 command)")
       # Show calling phone number
       #TODO: To Delete when phone number check optimized (wait until be sure code is working fine)
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=1"):
-        print("[WARNING] Can't enable mode to show phone number when calling (CLIP command)")
+        logging.debug("Can't enable mode to show phone number when calling (CLIP command)")
       # Set to text mode
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
-        print("[ERROR] Can't set module to text mode (CMGF command)")
+        logging.error("Impossible to set module to text mode (CMGF command)")
         is_init = False
     self.__initialized = is_init
     if not self.__initialized:
@@ -289,12 +289,14 @@ class GSMTC35:
     val_result = []
     while 1:
       current_line = self.__getNotEmptyLine("", error_result, additional_timeout)
-      if current_line == "":
-        return val_result
       if (result == current_line):
         return val_result
       elif (len(error_result) > 0) and (current_line == error_result):
+        logging.error("Error returned by GSM module for \""+str(cmd)+"\" command")
         return []
+      elif current_line == "":
+        logging.debug("No more line to get from the GSM module (No error nor ok detected)")
+        return val_result
       else:
         val_result.append(current_line)
 
@@ -810,7 +812,7 @@ class GSMTC35:
     result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CHUP")
     if not result:
       # Try to hang up with an other method if the previous one didn't work
-      print("First method to hang up call failed...\r\nTrying an other...")
+      logging.debug("First method to hang up call failed...\r\nTrying an other...")
       result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"H")
 
     return result
