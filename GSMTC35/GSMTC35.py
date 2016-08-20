@@ -376,6 +376,82 @@ class GSMTC35:
                                         +str(phonebook_type)+"\"")
 
 
+  def __getCurrentPhonebookRange(self):
+    """Get information about current phonebook restrictions (min and max entry
+       indexes, max phone number length and max contact name length)
+
+    return: (int, int, int, int) First entry index, Last entry index, max phone
+      number length, max contact name length (for all elements: -1 if data is invalid)
+    """
+    # Send the command to get all info
+    result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CPBR=?",
+                                              content="+CPBR: ")
+
+    index_min = -1
+    index_max = -1
+    index_max_phone_length = -1
+    max_contact_name_length = -1
+
+    if result == "":
+      return index_min, index_max, index_max_phone_length, max_contact_name_length
+
+    # Parse result:
+    if len(result) > 8:
+      if result[:7] == "+CPBR: ":
+        # Get result without "+CPBR: " and delete quote
+        result = result[7:]
+
+        # Delete potential "(" and ")" from the result
+        result = result.replace("(","")
+        result = result.replace(")","")
+
+        # Split index_min and the other part of the result
+        split_result = result.split("-")
+        if len(split_result) >= 2:
+          try:
+            index_min = int(split_result[0])
+          except ValueError:
+            # Index min is not correct, let's try to get other elements
+            logging.debug("Impossible to get the phonebook min index")
+            pass
+
+          # Split last elements
+          split_result = split_result[1].split(",")
+
+          # Get the index_max
+          if len(split_result) >= 1:
+            try:
+              index_max = int(split_result[0])
+            except ValueError:
+              # Index max is not correct, let's try to get other elements
+              logging.debug("Impossible to get the phonebook max index")
+              pass
+
+          # Get max phone length
+          if len(split_result) >= 2:
+            try:
+              index_max_phone_length = int(split_result[1])
+            except ValueError:
+              logging.debug("Impossible to get the phonebook max phone length")
+              # Max phone length is not correct, let's try to get other elements
+              pass
+
+          # Get contact name length
+          if len(split_result) >= 3:
+            try:
+              max_contact_name_length = int(split_result[2])
+            except ValueError:
+              # Max phone length is not correct, let's try to get other elements
+              logging.debug("Impossible to get the phonebook max contact name length")
+              pass
+
+    # Delete last "OK" from buffer
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    # Return final result
+    return index_min, index_max, index_max_phone_length, max_contact_name_length
+
+
   ######################## INFO AND UTILITY FUNCTIONS ##########################
   def isAlive(self):
     """Check if the GSM module is alive (answers to AT commands)
