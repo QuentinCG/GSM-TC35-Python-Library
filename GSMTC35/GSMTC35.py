@@ -586,8 +586,8 @@ class GSMTC35:
               - sms (string) Content of the SMS
     """
     all_lines_retrieved = False
+    lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL=\""+str(sms_type)+"\"", error_result="")
     while not all_lines_retrieved:
-      lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL=\""+str(sms_type)+"\"", error_result="")
       # Make sure the "OK" sent by the module is not part of an SMS
       if len(lines) > 0:
         additional_line = self.__getNotEmptyLine("", "", 0)
