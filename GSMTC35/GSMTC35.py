@@ -71,6 +71,20 @@ class GSMTC35:
     INCOMING = 4
     WAITING = 5
 
+  class ePhonebookType:
+    CURRENT = "" # Phonebook in use
+    SIM = "SM" # Main phonebook on SIM card
+    GSM_MODULE = "ME" # Main phonebook on GSM module
+    LAST_DIALLING = "LD" # Last dialed numbers (stored in SIM card)
+    MISSED_CALLS = "MC" # Last missed calls (stored in GSM module)
+    RECEIVED_CALLS = "RC" # Last received calls (stored in GSM module)
+    MSISDNS = "ON" # Mobile Station ISDN Numbers (stored in GSM module or SIM card)
+
+  class __ePhoneNumberType:
+    ERROR = -1
+    LOCAL = 129
+    INTERNATIONAL = 145
+
 
   ################################### INIT ####################################
   def __init__(self):
