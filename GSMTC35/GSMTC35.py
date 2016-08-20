@@ -689,6 +689,58 @@ class GSMTC35:
     return date
 
 
+  ############################ PHONEBOOK FUNCTIONS #############################
+  def getPhonebookEntries(self, phonebook_type = ePhonebookType.CURRENT):
+    """Get a list of phonebook entries (contact name, phone number and index)
+
+    Keyword arguments:
+      phonebook_type -- (GSMTC35.ePhonebookType, optional) Phonebook type
+
+    return: ([{index=(int), phone_number=(string), contact_name=(string)}, ...])
+      List of dictionary (each dictionary is a phonebook entry containing the
+      entry index, the phone number and the contact name)
+    """
+    phonebook_entries = []
+
+    # Select the correct phonebook
+    if not self.__selectPhonebook(phonebook_type):
+      logging.error("Impossible to select the phonebook")
+      return phonebook_entries
+
+    # Get information about phonebook range
+    index_min, index_max, max_length_phone, max_length_name = self.__getCurrentPhonebookRange()
+    if index_min < 0 or index_max < 0 or index_min > index_max:
+      logging.error("Phonebook min or max indexes are not valid")
+      return phonebook_entries
+
+    # Get the phonebook data
+    lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CPBR="+str(index_min)+","+str(index_max))
+
+    if len(lines) <= 0:
+      # Error or no phonebook entries
+      return phonebook_entries
+
+    for line in lines:
+      if line[:7] == "+CPBR: ":
+        # Get result without "+CMGL: "
+        line = line[7:]
+        # Split remaining data from the line
+        split_list = line.split(",")
+        if len(split_list) >= 4:
+          try:
+            entry = {}
+            entry["index"] = int(split_list[0])
+            entry["phone_number"] = str(split_list[1])
+            entry["contact_name"] = str(split_list[3])
+            phonebook_entries.append(entry)
+          except ValueError:
+            logging.error("Impossible to add this phonebook entry \""+str(line)+"\"")
+      else:
+        logging.error("Invalid phonebook entry line \""+line+"\"")
+
+    return phonebook_entries
+
+
   ############################### SMS FUNCTIONS ################################
   def sendSMS(self, phone_number, msg, network_delay_sec=5):
     """Send SMS to specific phone number
