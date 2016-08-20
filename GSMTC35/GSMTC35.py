@@ -129,10 +129,9 @@ class GSMTC35:
       # Disable echo from GSM device
       if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"E0"):
         logging.debug("Can't disable echo mode (ATE0 command)")
-      # Show calling phone number
-      #TODO: To Delete when phone number check optimized (wait until be sure code is working fine)
-      if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=1"):
-        logging.debug("Can't enable mode to show phone number when calling (CLIP command)")
+      # Don't show calling phone number
+      if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
+        logging.debug("Can't disable mode showing phone number when calling (CLIP command)")
       # Set to text mode
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.error("Impossible to set module to text mode (CMGF command)")
