@@ -136,7 +136,9 @@ print("Picked up: "+str(gsm.pickUpCall()))
 print("Hanged up: "+str(gsm.hangUpCall()))
 
 # Add entry in GSM module phonebook
-print("Added contact to GSM module phonebook: "+str(gsm.addEntryToPhonebook("0600000000", "Dummy contact", GSMTC35.ePhonebookType.GSM_MODULE)))
+print("Added contact to GSM module phonebook: "
+      +str(gsm.addEntryToPhonebook("0600000000", "Dummy contact",
+      GSMTC35.ePhonebookType.GSM_MODULE)))
 
 # Get entry list in GSM module phonebook:
 entries = gsm.getPhonebookEntries(GSMTC35.ePhonebookType.GSM_MODULE)
@@ -145,7 +147,8 @@ for entry in entries:
   print(str(entry['index']+": "+str(entry['contact_name'])+" -> "+str(entry['phone_number'])))
 
 # Delete all GSM phonebook entries:
-print("Deleted all contact from GSM module phonebook: "+str(gsm.agsm.deleteAllEntriesFromPhonebook(GSMTC35.ePhonebookType.GSM_MODULE)))
+print("Deleted all contact from GSM module phonebook: "
+      +str(gsm.agsm.deleteAllEntriesFromPhonebook(GSMTC35.ePhonebookType.GSM_MODULE)))
 
 # Check if someone is calling
 print("Incoming call: "+str(gsm.isSomeoneCalling()))
