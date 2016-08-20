@@ -334,6 +334,30 @@ class GSMTC35:
     return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGD="+str(index))
 
 
+  @staticmethod
+  def __guessPhoneNumberType(phone_number):
+    """Guess phone number type from phone number
+
+    Keyword arguments:
+      phone_number -- (string) Phone number
+
+    return: (GSMTC35.__ePhoneNumberType) Phone number type
+    """
+    # Is it an international phone number?
+    if len(phone_number) > 1 and phone_number[0] == "+":
+      return GSMTC35.__ePhoneNumberType.INTERNATIONAL
+
+    # Is it a valid local phone number?
+    try:
+      int(phone_number)
+      return GSMTC35.__ePhoneNumberType.LOCAL
+    except ValueError:
+      pass
+
+    logging.error("Phone number "+str(phone_number)+" is not valid")
+    return GSMTC35.__ePhoneNumberType.ERROR
+
+
   ######################## INFO AND UTILITY FUNCTIONS ##########################
   def isAlive(self):
     """Check if the GSM module is alive (answers to AT commands)
