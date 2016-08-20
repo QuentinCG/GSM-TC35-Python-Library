@@ -358,6 +358,24 @@ class GSMTC35:
     return GSMTC35.__ePhoneNumberType.ERROR
 
 
+  def __selectPhonebook(self, phonebook_type):
+    """Select phonebook in order to use it for future operations on phonebooks
+
+    Note: If {phonebook_type} specifies "Current phonebook", no action will be
+    made and the function will return True
+
+    Keyword arguments:
+      phonebook_type -- (GSMTC35.ePhonebookType) Phonebook type
+
+    return: (bool) Phonebook selected
+    """
+    if phonebook_type == GSMTC35.ePhonebookType.CURRENT:
+      return True
+
+    return self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CPBS=\""
+                                        +str(phonebook_type)+"\"")
+
+
   ######################## INFO AND UTILITY FUNCTIONS ##########################
   def isAlive(self):
     """Check if the GSM module is alive (answers to AT commands)
