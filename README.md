@@ -138,7 +138,7 @@ print("Hanged up: "+str(gsm.hangUpCall()))
 # Add entry in GSM module phonebook
 print("Added contact to GSM module phonebook: "
       +str(gsm.addEntryToPhonebook("0600000000", "Dummy contact",
-      GSMTC35.ePhonebookType.GSM_MODULE)))
+                                   GSMTC35.ePhonebookType.GSM_MODULE)))
 
 # Get entry list in GSM module phonebook:
 entries = gsm.getPhonebookEntries(GSMTC35.ePhonebookType.GSM_MODULE)
