@@ -50,6 +50,7 @@ class GSMTC35:
   print(str(list(serial.tools.list_ports.comports())))
   '''
   """
+  ######################### Enums and static variables #########################
   __BASE_AT = "AT"
   __NORMAL_AT = "AT+"
   __RETURN_OK = "OK"
@@ -71,6 +72,7 @@ class GSMTC35:
     WAITING = 5
 
 
+  ################################### INIT ####################################
   def __init__(self):
     """Initialize the GSM module class with undefined serial connection"""
     self.__initialized = False
