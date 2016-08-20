@@ -741,6 +741,39 @@ class GSMTC35:
     return phonebook_entries
 
 
+  def addEntryToPhonebook(self, phone_number, contact_name, phonebook_type = ePhonebookType.CURRENT):
+    """Add an entry to the phonebook (contact name and phone number)
+
+    Keyword arguments:
+      phone_number -- (string) Phone number to add in the entry
+      contact_name -- (string) Name of contact associated with {phone_number}
+      phonebook_type -- (GSMTC35.ePhonebookType, optional) Phonebook type
+
+    return: (bool) Entry added
+    """
+    # Get phone number type (local, international, ...)
+    phone_number_type = GSMTC35.__guessPhoneNumberType(phone_number)
+    if phone_number_type == GSMTC35.__ePhoneNumberType.ERROR:
+      logging.error("Impossible to guess the phone number type from the phone number")
+      return False
+
+    # Select the correct phonebook
+    if not self.__selectPhonebook(phonebook_type):
+      logging.error("Impossible to select the phonebook")
+      return False
+
+    # Check size of contact name and phone number
+    index_min, index_max, max_length_phone, max_length_name = self.__getCurrentPhonebookRange()
+    if max_length_phone < 0 or max_length_name < 0 or len(phone_number) > max_length_phone or len(contact_name) > max_length_name:
+      logging.error("Phonebook max phone number and contact name length are not valid")
+      return False
+
+    # Add the entry
+    return self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CPBW=,\""
+                                        +str(phone_number)+"\","+str(phone_number_type)
+                                        +",\""+str(contact_name)+"\"")
+
+
   ############################### SMS FUNCTIONS ################################
   def sendSMS(self, phone_number, msg, network_delay_sec=5):
     """Send SMS to specific phone number
