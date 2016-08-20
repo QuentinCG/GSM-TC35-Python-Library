@@ -137,7 +137,6 @@ class GSMTC35:
 
     return: (string) {quoted_string} without quotes
      """
-
     str_lengh = len(quoted_string)
     if str_lengh > 1:
       if (quoted_string[0] == '"') or (quoted_string[0] == "'"):
@@ -146,7 +145,7 @@ class GSMTC35:
       str_lengh = len(quoted_string)
       if str_lengh >= 1:
         if (quoted_string[str_lengh-1] == '"') or (quoted_string[str_lengh-1] == "'"):
-            # Delete last ' or "
+          # Delete last ' or "
           quoted_string = quoted_string[:str_lengh-1]
     return quoted_string
 
