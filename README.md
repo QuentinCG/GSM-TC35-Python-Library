@@ -15,13 +15,10 @@ Most functionalities should work with other GSM module using AT commands.
 
 Non-exhaustive list of GSMTC35 class functionalities:
   - Check PIN state and enter PIN
-  - Send SMS
-  - Receive SMS
-  - Delete SMS
-  - Call
-  - Re-call
-  - Hang up call
-  - Pick up call
+  - Send/Receive/Delete SMS
+  - Call/Re-call
+  - Hang-up/Pick-up call
+  - Get/Add/Delete phonebook entries (phone numbers + contact names)
   - Check if someone is calling
   - Check if there is a call in progress
   - Check call status (call/ringing/...) and get the associated phone number
@@ -138,6 +135,18 @@ print("Picked up: "+str(gsm.pickUpCall()))
 # Hang up call
 print("Hanged up: "+str(gsm.hangUpCall()))
 
+# Add entry in GSM module phonebook
+print("Added contact to GSM module phonebook: "+str(gsm.addEntryToPhonebook("0600000000", "Dummy contact", GSMTC35.ePhonebookType.GSM_MODULE)))
+
+# Get entry list in GSM module phonebook:
+entries = gsm.getPhonebookEntries(GSMTC35.ePhonebookType.GSM_MODULE)
+print("List of stored contacts:")
+for entry in entries:
+  print(str(entry['index']+": "+str(entry['contact_name'])+" -> "+str(entry['phone_number'])))
+
+# Delete all GSM phonebook entries:
+print("Deleted all contact from GSM module phonebook: "+str(gsm.agsm.deleteAllEntriesFromPhonebook(GSMTC35.ePhonebookType.GSM_MODULE)))
+
 # Check if someone is calling
 print("Incoming call: "+str(gsm.isSomeoneCalling()))
 
@@ -172,7 +181,6 @@ print("List of operators: "+str(gsm.getOperatorNames()))
 ##TODO list
 
   - Add functionalities (class + command line):
-    * [ENHANCEMENT] Integrate contact handling (get-set contact and use it for SMS and phone calls)
     * [ENHANCEMENT] Integrate sleep mode
   - [ENHANCEMENT] Add python demo forwarding all incoming SMS to specific email or phone number
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast

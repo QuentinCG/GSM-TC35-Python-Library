@@ -9,13 +9,10 @@
 
   Non-exhaustive class functionality list:
     - Check PIN state and enter PIN
-    - Send SMS
-    - Get SMS
-    - Delete SMS
-    - Call
-    - Re-call
-    - Hang up call
-    - Pick up call
+    - Send/Get/Delete SMS
+    - Call/Re-call
+    - Hang up/Pick-up call
+    - Get/Add/Delete phonebook entries (phone numbers + contact names)
     - Check if someone is calling
     - Check if there is a call in progress
     - Get last call duration
