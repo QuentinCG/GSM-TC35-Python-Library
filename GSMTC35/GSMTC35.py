@@ -129,6 +129,7 @@ class GSMTC35:
 
 
   ######################### INTERNAL UTILITY FUNCTIONS #########################
+  @staticmethod
   def __deleteQuote(quoted_string):
     """Delete first and last " or ' from {quoted_string}
 
