@@ -774,6 +774,49 @@ class GSMTC35:
                                         +",\""+str(contact_name)+"\"")
 
 
+  def deleteEntryFromPhonebook(self, index, phonebook_type = ePhonebookType.CURRENT):
+    """Delete a phonebook entry
+
+    Keyword arguments:
+      index -- (int) Index of the entry to delete
+      phonebook_type -- (GSMTC35.ePhonebookType, optional) Phonebook type
+
+    return: (bool) Entry deleted
+    """
+    # Select the correct phonebook
+    if not self.__selectPhonebook(phonebook_type):
+      logging.error("Impossible to select the phonebook")
+      return False
+
+    return self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CPBW="+str(index))
+
+
+  def deleteAllEntriesFromPhonebook(self, phonebook_type = ePhonebookType.CURRENT):
+    """Delete all phonebook entries
+
+    Keyword arguments:
+      phonebook_type -- (GSMTC35.ePhonebookType, optional) Phonebook type
+
+    return: (bool) All entries deleted
+    """
+    # Select the correct phonebook
+    if not self.__selectPhonebook(phonebook_type):
+      logging.error("Impossible to select the phonebook")
+      return False
+
+    # Get entries to delete
+    entries = self.getPhonebookEntries(GSMTC35.ePhonebookType.CURRENT)
+
+    # Delete all phonebook entries
+    all_deleted = True
+    for entry in entries:
+      if not self.deleteEntryFromPhonebook(entry['index'], GSMTC35.ePhonebookType.CURRENT):
+        logging.debug("Impossible to delete entry "+str(entry['index'])+" ("+str(entry['contact_name'])+")")
+        all_deleted = False
+
+    return all_deleted
+
+
   ############################### SMS FUNCTIONS ################################
   def sendSMS(self, phone_number, msg, network_delay_sec=5):
     """Send SMS to specific phone number
