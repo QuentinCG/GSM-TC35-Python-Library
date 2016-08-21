@@ -753,7 +753,8 @@ class GSMTC35:
       return phonebook_entries
 
     # Get the phonebook data
-    lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CPBR="+str(index_min)+","+str(index_max))
+    lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CPBR="+str(index_min)+","+str(index_max),
+                                           additional_timeout=60)
 
     if len(lines) <= 0:
       logging.warning("Impossible to get phonebook entries (error or no entries)")
