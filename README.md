@@ -121,7 +121,7 @@ for sms in rx_sms:
 print("Delete all SMS: "+str(gsm.deleteSMS(GSMTC35.eSMS.ALL_SMS)))
 
 # Call
-print("Called: "+str(gsm.call("0601234567")))
+print("Called: "+str(gsm.call(phone_number="0601234567", hide_phone_number=False)))
 
 # Re-call same number
 print("Re-called: "+str(gsm.reCall()))
@@ -190,7 +190,6 @@ gsm.close()
     * [ENHANCEMENT] Integrate sleep mode
     * [ENHANCEMENT] Add ACM and ACMmax support
     * [ENHANCEMENT] Add call forwarding support
-    * [ENHANCEMENT] Add enable/disable phone number presentation support when calling
     * [ENHANCEMENT] Add alarm and reboot support
     * [ENHANCEMENT] Add fax support (will not be done by me)
     * [ENHANCEMENT] Add loudspeaker/microphone volume/mute support

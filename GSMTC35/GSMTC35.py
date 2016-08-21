@@ -1030,7 +1030,7 @@ class GSMTC35:
     return self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"A;")
 
 
-  def call(self, phone_number, waiting_time_sec=20):
+  def call(self, phone_number, hide_phone_number=False, waiting_time_sec=20):
     """Call {phone_number} and wait {waiting_time_sec} it's picked up (previous call will be terminated)
 
     WARNING: This function does not end the call:
@@ -1039,6 +1039,7 @@ class GSMTC35:
 
     Keyword arguments:
       phone_number -- (string) Phone number to call
+      hide_phone_number -- (bool, optional) Enable/Disable phone number presentation to called phone
       waiting_time_sec -- (int, optional) Blocking time in sec to wait a call to be picked up
 
     return: (bool) Call in progress
@@ -1046,9 +1047,15 @@ class GSMTC35:
     # Hang up is necessary in order to not have false positive
     #(sending an ATD command while a call is already in progress would return an "OK" from the GSM module)
     self.hangUpCall()
-    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"D"
-                                        +phone_number+";",
-                                        additional_timeout=waiting_time_sec)
+
+    if not hide_phone_number:
+      return self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"D"
+                                          +phone_number+";",
+                                          additional_timeout=waiting_time_sec)
+    else:
+      return self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"D#31#"
+                                          +phone_number+";",
+                                          additional_timeout=waiting_time_sec)
 
 
   def reCall(self, waiting_time_sec=20):
