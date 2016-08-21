@@ -136,6 +136,9 @@ class GSMTC35:
       # Don't show calling phone number
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
         logging.warning("Can't disable mode showing phone number when calling (CLIP command)")
+      # Don't show received SMS in buffer without query
+      if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CNMI=0,0"):
+        logging.warning("Can't disable mode showing received SMS (CNMI command)")
       # Set to text mode
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.error("Impossible to set module to text mode (CMGF command)")
