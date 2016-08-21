@@ -126,6 +126,13 @@ class GSMTC35:
       # Disable echo from GSM device
       if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"E0"):
         logging.warning("Can't disable echo mode (ATE0 command)")
+      # Use verbose answer (GSM module will return str like "OK\r\n" and not like "0")
+      if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"V1"):
+        logging.error("Can't set proper answer type from GSM module (ATV command)")
+        is_init = False
+      # Use non-verbose error result ("ERROR" instead of "+CME ERROR: (...)")
+      if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMEE=0"):
+        logging.warning("Can't set proper error format returned by GSM module (CMEE command)")
       # Don't show calling phone number
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
         logging.warning("Can't disable mode showing phone number when calling (CLIP command)")
