@@ -736,11 +736,12 @@ class GSMTC35:
 
 
   ############################ PHONEBOOK FUNCTIONS #############################
-  def getPhonebookEntries(self, phonebook_type = ePhonebookType.CURRENT):
+  def getPhonebookEntries(self, phonebook_type = ePhonebookType.CURRENT, waiting_time_sec=60):
     """Get a list of phonebook entries (contact name, phone number and index)
 
     Keyword arguments:
       phonebook_type -- (GSMTC35.ePhonebookType, optional) Phonebook type
+      waiting_time_sec -- (int, optional) Time to wait phonebook entries to be sent by GSM module
 
     return: ([{index=(int), phone_number=(string), contact_name=(string)}, ...])
       List of dictionary (each dictionary is a phonebook entry containing the
@@ -761,7 +762,7 @@ class GSMTC35:
 
     # Get the phonebook data
     lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CPBR="+str(index_min)+","+str(index_max),
-                                           additional_timeout=60)
+                                           additional_timeout=waiting_time_sec)
 
     if len(lines) <= 0:
       logging.warning("Impossible to get phonebook entries (error or no entries)")
@@ -883,12 +884,13 @@ class GSMTC35:
                                         additional_timeout=network_delay_sec)
 
 
-  def getSMS(self, sms_type=eSMS.ALL_SMS):
+  def getSMS(self, sms_type=eSMS.ALL_SMS, waiting_time_sec=5):
     """Get SMS
 
     Keyword arguments:
       sms_type -- (string) Type of SMS to get (possible values: GSMTC35.eSMS.ALL_SMS,
                            GSMTC35.eSMS.UNREAD_SMS or GSMTC35.eSMS.READ_SMS)
+      waiting_time_sec -- (int, optional) Time to wait SMS to be displayed by GSM module
 
     return: ([{"index":, "status":, "phone_number":, "date":, "time":, "sms":},]) List of requested SMS (list of dictionaries)
             Explanation of dictionaries content:
@@ -901,7 +903,7 @@ class GSMTC35:
     """
     all_lines_retrieved = False
     lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL=\""+str(sms_type)+"\"", error_result="",
-                                           additional_timeout=5)
+                                           additional_timeout=waiting_time_sec)
     while not all_lines_retrieved:
       # Make sure the "OK" sent by the module is not part of an SMS
       if len(lines) > 0:
