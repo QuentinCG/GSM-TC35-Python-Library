@@ -16,7 +16,7 @@ Most functionalities should work with other GSM module using AT commands.
 Non-exhaustive list of GSMTC35 class functionalities:
   - Check PIN state and enter PIN
   - Send/Receive/Delete SMS
-  - Call/Re-call
+  - Call/Re-call (possible to hide phone number)
   - Hang-up/Pick-up call
   - Get/Add/Delete phonebook entries (phone numbers + contact names)
   - Check if someone is calling
