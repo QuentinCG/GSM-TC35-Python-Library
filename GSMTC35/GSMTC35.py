@@ -150,6 +150,9 @@ class GSMTC35:
       # Don't show received SMS in buffer without query
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CNMI=0,0"):
         logging.warning("Can't disable mode showing received SMS (CNMI command)")
+      # Don't show temperature issue without query
+      if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"^SCTM=0"):
+        logging.warning("Can't disable mode showing critical temperature (SCTM command)")
       # Set to text mode
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.error("Impossible to set module to text mode (CMGF command)")
