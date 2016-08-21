@@ -92,7 +92,7 @@ from GSMTC35 import GSMTC35
 gsm = GSMTC35()
 
 # Mandatory step
-if not gsm.setup("COM3"):
+if not gsm.setup(_port="COM3", _pin="1234"):
   print("Setup error")
   sys.exit(2)
 
@@ -100,11 +100,11 @@ if not gsm.isAlive():
   print("The GSM module is not responding...")
   sys.exit(2)
 
-# Enter PIN
-if gsm.isPinRequired():
-  if not gsm.enterPin("1234"):
-    print("Wrong PIN")
-    sys.exit(2)
+# Enter PIN (already specified in setup())
+#if gsm.isPinRequired():
+#  if not gsm.enterPin("1234"):
+#    print("Wrong PIN")
+#    sys.exit(2)
 
 # Send SMS
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", "Hello from python script!!!")))

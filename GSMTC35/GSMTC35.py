@@ -91,7 +91,7 @@ class GSMTC35:
 
 
   ################################### SETUP ####################################
-  def setup(self, _port, _baudrate=115200, _parity=serial.PARITY_NONE,
+  def setup(self, _port, _pin=-1, _baudrate=115200, _parity=serial.PARITY_NONE,
             _stopbits=serial.STOPBITS_ONE, _bytesize=serial.EIGHTBITS,
             _timeout_sec=2):
     """Initialize the class (can be launched multiple time if setup changed or module crashed)
@@ -99,6 +99,7 @@ class GSMTC35:
     Keyword arguments:
       _port -- (string) Serial port name of the GSM serial connection
       _baudrate -- (int, optional) Baudrate of the GSM serial connection
+      _pin -- (string, optional) PIN number if locked (not needed to do it now but would improve reliability)
       _parity -- (pySerial parity, optional) Serial connection parity (PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE)
       _stopbits -- (pySerial stop bits, optional) Serial connection stop bits (STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO)
       _bytesize -- (pySerial byte size, optional) Serial connection byte size (FIVEBITS, SIXBITS, SEVENBITS, EIGHTBITS)
@@ -133,6 +134,16 @@ class GSMTC35:
       # Use non-verbose error result ("ERROR" instead of "+CME ERROR: (...)")
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMEE=0"):
         logging.warning("Can't set proper error format returned by GSM module (CMEE command)")
+
+      # Try to enter PIN if needed (May be needed for next commands):
+      if self.isPinRequired():
+        if _pin >= 0:
+          if not self.enterPin(_pin):
+            logging.error("Invalid PIN \""+str(_pin)+"\" (YOU HAVE A MAXIMUM OF 3 TRY)")
+            is_init = False
+        else:
+          logging.warning("Some initialization may not work without PIN activated")
+
       # Don't show calling phone number
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
         logging.warning("Can't disable mode showing phone number when calling (CLIP command)")
@@ -1168,7 +1179,8 @@ class GSMTC35:
 
     return: (bool) PIN is correct
     """
-    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CPIN="+pin)
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CPIN="+str(pin),
+                                        additional_timeout=10)
 
 
 ################################# HELP FUNCTION ################################
