@@ -107,7 +107,7 @@ class GSMTC35:
     return: (bool) Module initialized
     """
     # Close potential previous GSM session
-    self.__serial.close()
+    self.close()
 
     # Create new GSM session
     self.__timeout_sec = _timeout_sec
@@ -138,6 +138,11 @@ class GSMTC35:
       self.__serial.close()
 
     return self.__initialized
+
+
+  def close(self):
+    """Close GSM session (free the GSM serial port)"""
+    self.__serial.close()
 
 
   ######################### INTERNAL UTILITY FUNCTIONS #########################

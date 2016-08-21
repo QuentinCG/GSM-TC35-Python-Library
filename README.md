@@ -178,6 +178,9 @@ else:
   print("Signal strength: Wrong value")
 print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
 print("List of operators: "+str(gsm.getOperatorNames()))
+
+# At the end, close connection with GSM module
+gsm.close()
 ```
 
 
