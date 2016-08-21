@@ -125,10 +125,10 @@ class GSMTC35:
     if self.__serial.isOpen():
       # Disable echo from GSM device
       if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"E0"):
-        logging.debug("Can't disable echo mode (ATE0 command)")
+        logging.warning("Can't disable echo mode (ATE0 command)")
       # Don't show calling phone number
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
-        logging.debug("Can't disable mode showing phone number when calling (CLIP command)")
+        logging.warning("Can't disable mode showing phone number when calling (CLIP command)")
       # Set to text mode
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.error("Impossible to set module to text mode (CMGF command)")
@@ -171,6 +171,8 @@ class GSMTC35:
   def __readLine(self):
     """Read one line from the serial port (not blocking)
 
+    Note: Even if the end of line is not found, the data is returned
+
     return: (string) Line without the end of line (empty if nothing received)
     """
     eol = '\r\n'
@@ -184,17 +186,25 @@ class GSMTC35:
           line = line[:len(line)-leneol]
           break
       else:
+        logging.warning("Received data without eol: \""+str(line)+"\"")
         break
+    logging.debug("[IN] "+str(line))
     return line
 
 
   def __deleteAllRxData(self):
-    """Delete all received data from the serial port"""
+    """Delete all received data from the serial port
+
+    return: (int) Number of deleted bytes
+    """
     bytesToRead = self.__serial.inWaiting()
     if bytesToRead <= 0:
-      return
-    self.__serial.read(bytesToRead)
+      return 0
 
+    data = self.__serial.read(bytesToRead)
+    logging.debug("[DELETED]"+str(data))
+
+    return bytesToRead
 
   def __waitDataContains(self, content, error_result, additional_timeout=0):
     """Wait to receive specific data from the serial port
@@ -212,9 +222,12 @@ class GSMTC35:
         line = self.__readLine()
         if content in line:
           return True
-        if error_result == line:
+        if len(error_result) > 0 and error_result == line:
+          logging.error("GSM module returned error \""+str(error_result)+"\"")
           return False
-      time.sleep(.100) # Wait 100ms if no data in the serial buffer
+      # Wait 100ms if no data in the serial buffer
+      time.sleep(.100)
+    #logging.error("Impossible to get line containing \""+str(content)+"\" on time")
     return False
 
 
@@ -235,8 +248,11 @@ class GSMTC35:
         if (content in line) and len(line) > 0:
           return line
         if len(error_result) > 0 and (error_result == line):
+          logging.error("GSM module returned error \""+str(error_result)+"\"")
           return ""
-      time.sleep(.100) # Wait 100ms if no data in the serial buffer
+      # Wait 100ms if no data in the serial buffer
+      time.sleep(.100)
+    logging.error("Impossible to get line containing \""+str(content)+"\" on time")
     return ""
 
 
@@ -248,9 +264,11 @@ class GSMTC35:
       after -- (string) Data to send after the end of line
     """
     self.__serial.write("{}\r\n".format(before).encode())
+    logging.debug("[OUT] "+str(before))
     if after != "":
       time.sleep(0.100)
       self.__serial.write(after.encode())
+      logging.debug("[OUT] "+str(after))
 
 
   def __sendCmdAndGetNotEmptyLine(self, cmd, after="", additional_timeout=0,
@@ -288,19 +306,22 @@ class GSMTC35:
     self.__sendLine(cmd, after)
 
     val_result = []
-    while 1:
-      current_line = self.__getNotEmptyLine("", error_result, additional_timeout)
-      if (result == current_line):
-        return val_result
-      elif (len(error_result) > 0) and (current_line == error_result):
-        logging.error("Error returned by GSM module for \""+str(cmd)+"\" command")
-        return []
-      elif current_line == "":
-        logging.debug("No more line to get from the GSM module (No error nor ok detected)")
-        return val_result
-      else:
-        val_result.append(current_line)
 
+    start_time = time.time()
+    while time.time() - start_time < self.__timeout_sec + additional_timeout:
+      while self.__serial.inWaiting() > 0:
+        line = self.__readLine()
+        if (result == line) and len(line) > 0:
+          return val_result
+        if len(error_result) > 0 and (error_result == line):
+          logging.error("Error returned by GSM module for \""+str(cmd)+"\" command")
+          return []
+        elif line != "":
+          val_result.append(line)
+      # Wait 100ms if no data in the serial buffer
+      time.sleep(.100)
+
+    logging.error("Impossible to get line equal to \""+str(result)+"\" on time")
     return val_result
 
 
@@ -395,58 +416,65 @@ class GSMTC35:
     index_max_phone_length = -1
     max_contact_name_length = -1
 
-    if result == "":
+    if result == "" or len(result) <= 8 or result[:7] != "+CPBR: ":
+      logging.error("Phonebook information request failed")
       return index_min, index_max, index_max_phone_length, max_contact_name_length
 
-    # Parse result:
-    if len(result) > 8:
-      if result[:7] == "+CPBR: ":
-        # Get result without "+CPBR: " and delete quote
-        result = result[7:]
+    # Get result without "+CPBR: "
+    result = result[7:]
 
-        # Delete potential "(" and ")" from the result
-        result = result.replace("(","")
-        result = result.replace(")","")
+    # Delete potential "(" and ")" from the result
+    result = result.replace("(","")
+    result = result.replace(")","")
 
-        # Split index_min and the other part of the result
-        split_result = result.split("-")
-        if len(split_result) >= 2:
-          try:
-            index_min = int(split_result[0])
-          except ValueError:
-            # Index min is not correct, let's try to get other elements
-            logging.debug("Impossible to get the phonebook min index")
-            pass
+    # Split index_min and the other part of the result
+    split_result = result.split("-")
+    if len(split_result) < 2:
+      logging.error("Impossible to split phonebook information")
+      return index_min, index_max, index_max_phone_length, max_contact_name_length
 
-          # Split last elements
-          split_result = split_result[1].split(",")
+    try:
+      index_min = int(split_result[0])
+    except ValueError:
+      # Index min is not correct, let's try to get other elements
+      logging.warning("Impossible to get the phonebook min index")
+      pass
 
-          # Get the index_max
-          if len(split_result) >= 1:
-            try:
-              index_max = int(split_result[0])
-            except ValueError:
-              # Index max is not correct, let's try to get other elements
-              logging.debug("Impossible to get the phonebook max index")
-              pass
+    # Split last elements
+    split_result = split_result[1].split(",")
 
-          # Get max phone length
-          if len(split_result) >= 2:
-            try:
-              index_max_phone_length = int(split_result[1])
-            except ValueError:
-              logging.debug("Impossible to get the phonebook max phone length")
-              # Max phone length is not correct, let's try to get other elements
-              pass
+    # Get the index_max
+    if len(split_result) >= 1:
+      try:
+        index_max = int(split_result[0])
+      except ValueError:
+        # Index max is not correct, let's try to get other elements
+        logging.warning("Impossible to get the phonebook max index (value error)")
+        pass
+    else:
+      logging.warning("Impossible to get the phonebook max index (length error)")
 
-          # Get contact name length
-          if len(split_result) >= 3:
-            try:
-              max_contact_name_length = int(split_result[2])
-            except ValueError:
-              # Max phone length is not correct, let's try to get other elements
-              logging.debug("Impossible to get the phonebook max contact name length")
-              pass
+    # Get max phone length
+    if len(split_result) >= 2:
+      try:
+        index_max_phone_length = int(split_result[1])
+      except ValueError:
+        # Max phone length is not correct, let's try to get other elements
+        logging.warning("Impossible to get the phonebook max phone length (value error)")
+        pass
+    else:
+      logging.warning("Impossible to get the phonebook max phone length (length error)")
+
+    # Get contact name length
+    if len(split_result) >= 3:
+      try:
+        max_contact_name_length = int(split_result[2])
+      except ValueError:
+        # Max phone length is not correct, let's try to get other elements
+        logging.warning("Impossible to get the phonebook max contact name length (value error)")
+        pass
+    else:
+      logging.warning("Impossible to get the phonebook max contact name length (length error)")
 
     # Delete last "OK" from buffer
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
@@ -559,28 +587,30 @@ class GSMTC35:
 
     # Set the COPS command correctly
     if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"COPS=3,0"):
+      logging.error("Impossible to set the COPS command")
       return operator
 
     # Send the command to get the operator name
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"COPS?",
                                               content="+COPS: ")
-    if result == "":
+    if result == "" or len(result) <= 8 or result[0:7] != "+COPS: ":
+      logging.error("Command to get the operator name failed")
       return operator
 
-    #Check result:
-    if len(result) > 8:
-      if result[0:7] == "+COPS: ":
-        # Get result without "+COPS: "
-        result = result[7:]
-        # Split remaining data from the line
-        split_list = result.split(",")
-        if len(split_list) >= 3:
-          # Get the operator name without quote (3th element from the list)
-          operator = GSMTC35.__deleteQuote(split_list[2])
+    # Get result without "+COPS: "
+    result = result[7:]
+
+    # Split remaining data from the line
+    split_list = result.split(",")
+    if len(split_list) < 3:
+      logging.error("Impossible to split operator information")
+      return operator
+
+    # Get the operator name without quote (3th element from the list)
+    operator = GSMTC35.__deleteQuote(split_list[2])
 
     # Delete last "OK" from buffer
-    if operator != "":
-      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return operator
 
@@ -591,27 +621,31 @@ class GSMTC35:
 
     return: (int) -1 if not valid, else signal strength in dBm
     """
-    ### in dBm OR -1 if can't get info
     sig_strength = -1
 
     # Send the command to get the signal power
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CSQ",
                                               content="+CSQ: ")
     #Check result:
-    if result == "":
+    if result == "" or len(result) <= 7 or result[:6] != "+CSQ: ":
+      logging.error("Command to get signal strength failed")
       return sig_strength
 
-    if len(result) > 7:
-      if result[:6] == "+CSQ: ":
-        result = result[6:]
-        # Split remaining data from the line
-        split_list = result.split(",")
-        if len(split_list) >= 1:
-          # Get the received signal strength (1st element)
-          try:
-            sig_strength = int(split_list[0])
-          except ValueError:
-            pass
+    # Get result without "+CSQ: "
+    result = result[6:]
+
+    # Split remaining data from the line
+    split_list = result.split(",")
+    if len(split_list) < 1:
+      logging.error("Impossible to split signal strength")
+      return sig_strength
+
+    # Get the received signal strength (1st element)
+    try:
+      sig_strength = int(split_list[0])
+    except ValueError:
+      logging.error("Impossible to convert \""+str(split_list[0])+"\" into integer")
+      return sig_strength
 
     # Delete last "OK" from buffer
     if sig_strength != -1:
@@ -638,16 +672,23 @@ class GSMTC35:
     operators = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"COPN")
     result = []
 
+    if len(operators) <= 0:
+      logging.error("Command to get operator names failed")
+      return result
+
     for operator in operators:
       operator_name = ""
-      if len(operator) > 8:
-        if operator[:7] == "+COPN: ":
-          operator = operator[7:]
-          # Split remaining data from the line
-          split_list = operator.split(",")
-          if len(split_list) >= 2:
-            # Get the operator name without quote (2nd element)
-            operator_name = GSMTC35.__deleteQuote(split_list[1])
+      if len(operator) > 8 or operator[:7] == "+COPN: ":
+        operator = operator[7:]
+        # Split remaining data from the line
+        split_list = operator.split(",")
+        if len(split_list) >= 2:
+          # Get the operator name without quote (2nd element)
+          operator_name = GSMTC35.__deleteQuote(split_list[1])
+        else:
+          logging.warning("Impossible to parse operator information \""+operator+"\"")
+      else:
+        loggging.warning("Impossible to get operator from \""+operator+"\" line")
       if operator_name != "":
         result.append(operator_name)
 
@@ -674,18 +715,15 @@ class GSMTC35:
     # Send the command to get the date
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CCLK?",
                                               content="+CCLK: ")
-    if result == "":
+    if result == "" or len(result) <= 8 or result[:7] != "+CCLK: ":
+      logging.error("Command to get internal clock failed")
       return date
 
-    #Check result:
-    if len(result) > 8:
-      if result[:7] == "+CCLK: ":
-        # Get date result without "+CCLK: " and delete quote
-        date = GSMTC35.__deleteQuote(result[7:])
+    # Get date result without "+CCLK: " and delete quote
+    date = GSMTC35.__deleteQuote(result[7:])
 
     # Delete last "OK" from buffer
-    if date != "":
-      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return date
 
@@ -718,7 +756,7 @@ class GSMTC35:
     lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CPBR="+str(index_min)+","+str(index_max))
 
     if len(lines) <= 0:
-      # Error or no phonebook entries
+      logging.warning("Impossible to get phonebook entries (error or no entries)")
       return phonebook_entries
 
     for line in lines:
@@ -735,9 +773,11 @@ class GSMTC35:
             entry["contact_name"] = str(split_list[3])
             phonebook_entries.append(entry)
           except ValueError:
-            logging.error("Impossible to add this phonebook entry \""+str(line)+"\"")
+            logging.warning("Impossible to add this phonebook entry \""+str(line)+"\"")
+        else:
+          logging.warning("Impossible to split phonebook entry options \""+str(line)+"\"")
       else:
-        logging.error("Invalid phonebook entry line \""+line+"\"")
+        logging.warning("Invalid phonebook entry line \""+str(line)+"\"")
 
     return phonebook_entries
 
@@ -812,7 +852,7 @@ class GSMTC35:
     all_deleted = True
     for entry in entries:
       if not self.deleteEntryFromPhonebook(entry['index'], GSMTC35.ePhonebookType.CURRENT):
-        logging.debug("Impossible to delete entry "+str(entry['index'])+" ("+str(entry['contact_name'])+")")
+        logging.warning("Impossible to delete entry "+str(entry['index'])+" ("+str(entry['contact_name'])+")")
         all_deleted = False
 
     return all_deleted
@@ -885,7 +925,7 @@ class GSMTC35:
             sms["time"] = GSMTC35.__deleteQuote(split_list[5])
             sms["sms"] = ""
           except ValueError:
-            # The line is not correct --> the SMS is not valid
+            logging.error("One of the SMS is not valid, command options: \""+str(line)+"\"")
             sms = {}
       elif bool(sms):
         if ("sms" in sms) and (sms["sms"] != ""):
@@ -941,7 +981,7 @@ class GSMTC35:
     result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CHUP")
     if not result:
       # Try to hang up with an other method if the previous one didn't work
-      logging.debug("First method to hang up call failed...\r\nTrying an other...")
+      logging.warning("First method to hang up call failed...\r\nTrying an other...")
       result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"H")
 
     return result
@@ -1030,16 +1070,15 @@ class GSMTC35:
                                               content="^SLCD: ")
 
     # Get the call duration from the received line
-    if result == "":
+    if result == "" or len(result) <= 7 or result[:7] != "^SLCD: ":
+      logging.error("Command to get last call duration failed")
       return call_duration
 
-    if len(result) > 7:
-      if result[:7] == "^SLCD: ":
-        call_duration = result[7:]
+    # Get the call duration
+    call_duration = result[7:]
 
     # Delete last "OK" from buffer
-    if call_duration != "":
-      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return call_duration
 
@@ -1056,20 +1095,29 @@ class GSMTC35:
                                             content="+CLCC:", error_result=self.__RETURN_OK)
     call_state = GSMTC35.eCall.NOCALL
     phone = ""
-    if len(data) > 8:
-      if data[:7] == "+CLCC: ":
-        data = data[7:]
-        split_list = data.split(",")
-        if len(split_list) >= 3:
-          # Get call state (3th element from the list)
-          try:
-            call_state = int(split_list[2])
-          except ValueError:
-            return call_state, phone
 
-          # Get the phone number if it exists
-          if len(split_list) >= 6:
-            phone = GSMTC35.__deleteQuote(split_list[5])
+    if len(data) <= 8 or data[:7] != "+CLCC: ":
+      # No call
+      return call_state, phone
+
+    data = data[7:]
+    split_list = data.split(",")
+    if len(split_list) < 3:
+      logging.error("Impossible to split current call data")
+      return call_state, phone
+
+    # Get call state (3th element from the list)
+    try:
+      call_state = int(split_list[2])
+    except ValueError:
+      logging.warning("Impossible to get call state")
+
+    # Get the phone number if it exists
+    if len(split_list) >= 6:
+      phone = GSMTC35.__deleteQuote(split_list[5])
+    else:
+      logging.warning("Impossible to get phone number")
+
     return call_state, phone
 
 
@@ -1079,8 +1127,13 @@ class GSMTC35:
 
     return: (bool) is SIM card PIN still needed to access phone functions
     """
-    return not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CPIN?",
-                                            result="READY")
+    pin_required = not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CPIN?",
+                                                    result="READY")
+
+    # Delete last "OK" from buffer
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    return pin_required
 
 
   def enterPin(self, pin):
@@ -1320,7 +1373,7 @@ def main():
   """Shell GSM utility function"""
 
   logger = logging.getLogger()
-  logger.setLevel(logging.DEBUG)
+  logger.setLevel(logging.WARNING)
 
   baudrate = 115200
   serial_port = ""
