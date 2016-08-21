@@ -137,7 +137,7 @@ class GSMTC35:
 
       # Try to enter PIN if needed (May be needed for next commands):
       if self.isPinRequired():
-        if _pin >= 0:
+        if int(_pin) >= 0:
           if not self.enterPin(_pin):
             logging.error("Invalid PIN \""+str(_pin)+"\" (YOU HAVE A MAXIMUM OF 3 TRY)")
             is_init = False
@@ -1410,7 +1410,7 @@ def main():
 
   baudrate = 115200
   serial_port = ""
-  pin = ""
+  pin = -1
 
   # Get options
   try:
@@ -1455,7 +1455,7 @@ def main():
 
   # Initialize GSM
   gsm = GSMTC35()
-  is_init = gsm.setup(_port=serial_port, _baudrate=baudrate)
+  is_init = gsm.setup(_port=serial_port, _baudrate=baudrate, _pin=pin)
   print("GSM init with serial port {} and baudrate {}: {}".format(serial_port, baudrate, is_init))
   if (not is_init):
     print("[ERROR] You must configure the serial port (and the baudrate), use '-h' to get more information.")
@@ -1467,13 +1467,8 @@ def main():
 
   # Be sure PIN is initialized
   if gsm.isPinRequired():
-    if pin != "":
-      if not gsm.enterPin(pin):
-        print("[ERROR] Pin not valid, be careful to not enter wrong PIN 3 times!")
-        sys.exit(2)
-    else:
-      print("[ERROR] PIN is needed")
-      sys.exit(2)
+    print("[ERROR] PIN is needed")
+    sys.exit(2)
   else:
     print("PIN is not needed")
 
