@@ -1373,8 +1373,8 @@ def __help(func="", filename=__file__):
 def main():
   """Shell GSM utility function"""
 
-  logger = logging.getLogger()
-  logger.setLevel(logging.WARNING)
+  #logger = logging.getLogger()
+  #logger.setLevel(logging.WARNING)
 
   baudrate = 115200
   serial_port = ""
