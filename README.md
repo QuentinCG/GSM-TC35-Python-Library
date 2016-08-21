@@ -188,6 +188,16 @@ gsm.close()
 
   - Add functionalities (class + command line):
     * [ENHANCEMENT] Integrate sleep mode
+    * [ENHANCEMENT] Add ACM and ACMmax support
+    * [ENHANCEMENT] Add call forwarding support
+    * [ENHANCEMENT] Add enable/disable phone number presentation support when calling
+    * [ENHANCEMENT] Add alarm and reboot support
+    * [ENHANCEMENT] Add fax support (will not be done by me)
+    * [ENHANCEMENT] Add loudspeaker/microphone volume/mute support
+    * [ENHANCEMENT] Add operator selection and preferred operator list support
+    * [ENHANCEMENT] Improve PIN-PUK support (handle PUK and change password)
+    * [ENHANCEMENT] Add Monitor neighbour cells support
+    * [ENHANCEMENT] Add temperature support
   - [ENHANCEMENT] Add python demo forwarding all incoming SMS to specific email or phone number
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
   - [ENHANCEMENT] Update the __init__.py file
