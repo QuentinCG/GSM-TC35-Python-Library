@@ -1403,6 +1403,18 @@ class GSMTC35:
                                         additional_timeout=10)
 
 
+  def lockSimPin(self, current_pin):
+    """Lock the use of the SIM card with PIN (the PIN will be asked after a reboot)
+
+    Keyword arguments:
+      current_pin -- (int or string) Current PIN number linked to the SIM card
+
+    return: (bool) SIM PIN lock enabled
+    """
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CLCK=\"SC\",1,"
+                                        +str(current_pin))
+
+
 ################################# HELP FUNCTION ################################
 def __help(func="", filename=__file__):
   """Show help on how to use command line GSM module functions
