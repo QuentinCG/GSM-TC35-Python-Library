@@ -83,6 +83,38 @@ class GSMTC35:
     INTERNATIONAL = 145
 
 
+  ############################ STANDALONE FUNCTIONS ############################
+  @staticmethod
+  def changeBaudrateMode(old_baudrate, new_baudrate, port, pin=-1,
+                         parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+                         bytesize=serial.EIGHTBITS):
+    """Change baudrate mode (can be done only if GSM module is not currently used)
+
+    Keyword arguments:
+      old_baudrate -- (int) Baudrate value usable to communicate with the GSM module
+      new_baudrate -- (int) New baudrate value to communicate with the GSM module
+                            /!\ Use "0" to let the GSM module use "auto-baudrate" mode
+      port -- (string) Serial port name of the GSM serial connection
+      pin -- (string, optional) PIN number if locked
+      parity -- (pySerial parity, optional) Serial connection parity (PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE)
+      stopbits -- (pySerial stop bits, optional) Serial connection stop bits (STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO)
+      bytesize -- (pySerial byte size, optional) Serial connection byte size (FIVEBITS, SIXBITS, SEVENBITS, EIGHTBITS)
+
+    return: (bool) Baudrate changed
+    """
+    gsm = GSMTC35()
+    if not gsm.setup(_port=port, _pin=pin, _baudrate=old_baudrate, _parity=parity,
+                     _stopbits=stopbits, _bytesize=bytesize):
+      logging.error("Impossible to initialize the GSM module")
+      return False
+
+    if not gsm.__selectBaudrateCommunicationType(new_baudrate):
+      logging.error("Impossible to modify the baudrate")
+      return False
+
+    return True
+
+
   ################################### INIT ####################################
   def __init__(self):
     """Initialize the GSM module class with undefined serial connection"""
@@ -157,6 +189,11 @@ class GSMTC35:
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.error("Impossible to set module to text mode (CMGF command)")
         is_init = False
+      # Select fixed baudrate communication
+      if not self.__selectBaudrateCommunicationType(_baudrate):
+        # Some function will not work if this is not activated (alarm, wake-up ACK, ...)
+        logging.warning("Impossible to have fixed baudrate communication (IPR command)")
+
     self.__initialized = is_init
     if not self.__initialized:
       self.__serial.close()
@@ -505,6 +542,17 @@ class GSMTC35:
 
     # Return final result
     return index_min, index_max, index_max_phone_length, max_contact_name_length
+
+
+  def __selectBaudrateCommunicationType(self, baudrate):
+    """Select baudrate communication type with the module (fixed baudrate of auto-baudrate)
+
+    Keyword arguments:
+      baudrate -- (int) 0 for auto-baudrate or baudrate value for fixed baudrate
+
+    return: (bool) Baudrate selected
+    """
+    return self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"IPR="+str(baudrate))
 
 
   ######################## INFO AND UTILITY FUNCTIONS ##########################
