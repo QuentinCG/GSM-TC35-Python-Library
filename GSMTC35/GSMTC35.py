@@ -943,13 +943,13 @@ class GSMTC35:
     return: (bool) Date successfully modified
     """
     return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CCLK=\""
-                                        +time.strftime("%d/%m/%y,%H:%M:%S")+"\"")
+                                        +time.strftime("%y/%m/%d,%H:%M:%S")+"\"")
 
 
   def getDateFromInternalClock(self):
     """Get the date from the GSM module internal clock
 
-    return: (string) Date (format: %d/%m/%y,%H:%M:%S)
+    return: (string) Date (format: %y/%m/%d,%H:%M:%S)
     """
     date = ""
 
