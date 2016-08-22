@@ -206,6 +206,25 @@ class GSMTC35:
     self.__serial.close()
 
 
+  def reboot(self, waiting_time_sec=10):
+    """Reboot GSM module (you need to initialize the GSM module again after a reboot)
+
+    Keyword arguments:
+      additional_timeout -- (int, optional) Additional time (in sec) to reboot
+
+    return: (bool) Reboot successful
+    """
+    restarted = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CFUN=1,1",
+                                             result="^SYSSTART",
+                                             additional_timeout=waiting_time_sec)
+
+    # Be sure user will not use the class without initializing it again
+    if restarted:
+      self.close()
+
+    return restarted
+
+
   ######################### INTERNAL UTILITY FUNCTIONS #########################
   @staticmethod
   def __deleteQuote(quoted_string):
