@@ -1893,6 +1893,11 @@ def main():
         print("Call status: "+str(str_call_state)+" (phone number: "+str(phone_number)+")")
       else:
         print("Call status: "+str(str_call_state))
+      print("Neighbour cells: "+str(gsm.getNeighbourCells()))
+      print("Accumulated call meter: "+str(gsm.getAccumulatedCallMeter())+" home units")
+      print("Accumulated call meter max: "+str(gsm.getAccumulatedCallMeterMaximum())+" home units")
+      print("Is GSM module temperature critical: "+str(gsm.isTemperatureCritical()))
+      print("Is GSM module in sleep mode: "+str(gsm.isInSleepMode()))
 
       sys.exit(0)
   print("[ERROR] You must call one action, use '-h' to get more information.")

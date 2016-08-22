@@ -33,13 +33,10 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Get list of operators
 
 Non-exhaustive list of shell commands:
-  - Send SMS
-  - Receive SMS
-  - Delete SMS
+  - Send/Receive/Delete SMS
   - Call
-  - Hang up call
-  - Pick up call
-  - Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock, call status and associated phone number, operator list)
+  - Hang-up/Pick-up call
+  - Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock, call status and associated phone number, operator list, neighbour cells, accumulated call meter (max), temperature status, sleep mode status)
 
 
 ## How to install (python script and shell)
