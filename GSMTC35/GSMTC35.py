@@ -8,7 +8,8 @@
   shell (launch this python file with '-h' parameter to get more information).
 
   Non-exhaustive class functionality list:
-    - Check PIN state and enter PIN
+    - Check PIN state
+    - Enter/Lock/Unlock/Change PIN
     - Send/Get/Delete SMS
     - Call/Re-call
     - Hang up/Pick-up call
@@ -20,10 +21,16 @@
     - Get IDs (manufacturer, model, revision, IMEI, IMSI)
     - Set module to manufacturer state
     - Switch off
+    - Reboot
+    - Check sleep mode status
     - Get the current used operator
     - Get the signal strength (in dBm)
     - Set and get the date from the module internal clock
     - Get list of operators
+    - Get list of neighbour cells
+    - Get accumulated call meter and accumulated call meter max (in home units)
+    - Get temperature status
+    - Change the baudrate mode of the GSM module
 """
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
