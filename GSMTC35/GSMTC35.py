@@ -286,6 +286,7 @@ class GSMTC35:
 
     return bytesToRead
 
+
   def __waitDataContains(self, content, error_result, additional_timeout=0):
     """Wait to receive specific data from the serial port
 
