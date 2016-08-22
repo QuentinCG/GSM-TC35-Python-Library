@@ -1447,6 +1447,48 @@ class GSMTC35:
                                         +str(old_pin)+"\",\""+str(new_pin)+"\"")
 
 
+  ################################# SLEEP MODE #################################
+  def isInSleepMode(self):
+    """Check if the GSM module is in sleep mode (if yes, nothing can be done
+       until it wakes up).
+
+    return: (bool) GSM module is in sleep mode
+    """
+    # Send the command to get sleep mode state
+    result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CFUN?",
+                                              content="+CFUN: ")
+    if result == "":
+      # Module is in sleep mode
+      return True
+
+    # At this point, we are sure the module is not sleeping since at least
+    # one char was received from the GSM module.
+    # (Checking the returned value is here only to send warning
+    # if something is not logical in the result or to handle impossible case)
+
+    if len(result) < 8 or result[:7] != "+CFUN: ":
+      logging.warning("Impossible to get valid result from sleep query")
+      # Since some char were in the buffer, there is no sleep mode
+      return False
+
+    # Get result without "+CFUN: "
+    result = result[7:]
+    sleeping = True
+
+    try:
+      if int(result) == 0:
+        # The module answers that it is in sleep mode
+        # (this case is impossible... but who knows)
+        return True
+    except ValueError:
+      logging.warning("Impossible to convert \""+str(result)+"\" into integer")
+
+    # Delete last "OK" from buffer
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    return False
+
+
 ################################# HELP FUNCTION ################################
 def __help(func="", filename=__file__):
   """Show help on how to use command line GSM module functions
