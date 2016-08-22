@@ -836,6 +836,66 @@ class GSMTC35:
     return neighbour_cells
 
 
+  def getAccumulatedCallMeter(self):
+    """Get the accumulated call meter in home units
+
+    return: (int or long) Accumulated call meter value in home units (-1 if an error occurred)
+    """
+    int_result = -1
+
+    # Send request and get data
+    result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CACM?")
+
+    if result == "" or len(result) <= 8 or result[0:7] != "+CACM: ":
+      logging.error("Command to get the accumulated call meter failed")
+      return int_result
+
+    # Get result without "+CACM: " and without '"'
+    result = GSMTC35.__deleteQuote(result[7:])
+
+    try:
+      int_result = int(result, 16)
+    except ValueError:
+      logging.error("Impossible to convert hexadecimal value \""+str(result)+"\" into integer")
+      return int_result
+
+    # Delete the "OK" of the request from the buffer
+    if result != -1:
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    return int_result
+
+
+  def getAccumulatedCallMeterMaximum(self):
+    """Get the accumulated call meter maximum in home units
+
+    return: (int or long) Accumulated call meter maximum value in home units (-1 if an error occurred)
+    """
+    int_result = -1
+
+    # Send request and get data
+    result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CAMM?")
+
+    if result == "" or len(result) <= 8 or result[0:7] != "+CAMM: ":
+      logging.error("Command to get the accumulated call meter failed")
+      return int_result
+
+    # Get result without "+CAMM: " and without '"'
+    result = GSMTC35.__deleteQuote(result[7:])
+
+    try:
+      int_result = int(result, 16)
+    except ValueError:
+      logging.error("Impossible to convert hexadecimal value \""+str(result)+"\" into integer")
+      return int_result
+
+    # Delete the "OK" of the request from the buffer
+    if result != -1:
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    return int_result
+
+
   ############################### TIME FUNCTIONS ###############################
   def setCurrentDateToInternalClock(self):
     """Set the GSM module internal clock to current date
