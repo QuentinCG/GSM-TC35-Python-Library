@@ -14,7 +14,8 @@ Most functionalities should work with other GSM module using AT commands.
 ## Functionalities
 
 Non-exhaustive list of GSMTC35 class functionalities:
-  - Check PIN state and enter PIN
+  - Check PIN state
+  - Enter/Lock/Unlock/Change PIN
   - Send/Receive/Delete SMS
   - Call/Re-call (possible to hide phone number)
   - Hang-up/Pick-up call
@@ -24,13 +25,19 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Check call status (call/ringing/...) and get the associated phone number
   - Get last call duration
   - Check if module is alive
+  - Switch off
+  - Reboot
+  - Check sleep mode status
   - Get IDs (manufacturer, model, revision, IMEI, IMSI)
   - Set module to manufacturer state
-  - Switch off
   - Get the current used operator
   - Get the signal strength (in dBm)
   - Set and get the date from the module internal clock
   - Get list of operators
+  - Get list of neighbour cells
+  - Get accumulated call meter and accumulated call meter max (in home units)
+  - Get temperature status
+  - Change the baudrate mode
 
 Non-exhaustive list of shell commands:
   - Send/Receive/Delete SMS
@@ -87,9 +94,10 @@ import sys
 from GSMTC35 import GSMTC35
 
 gsm = GSMTC35()
+pin = 1234
 
 # Mandatory step
-if not gsm.setup(_port="COM3", _pin="1234"):
+if not gsm.setup(_port="COM3", _pin=pin):
   print("Setup error")
   sys.exit(2)
 
@@ -99,7 +107,7 @@ if not gsm.isAlive():
 
 # Enter PIN (already specified in setup())
 #if gsm.isPinRequired():
-#  if not gsm.enterPin("1234"):
+#  if not gsm.enterPin(pin):
 #    print("Wrong PIN")
 #    sys.exit(2)
 
@@ -158,6 +166,12 @@ call_state, phone_number = gsm.getCurrentCallState()
 print("Call status: "+str(call_state)+" (associated phone number: "+str(phone_number)+")")
 print("(-1=No call, 0=Call active, 1=Held, 2=Dialing, 3=Alerting, 4=Incoming, 5=Waiting)")
 
+# Edit SIM Pin
+print("SIM Locked: "+str(gsm.lockSimPin(pin)))
+print("SIM Unlocked: "+str(gsm.unlockSimPin(pin)))
+new_pin = pin # (Just for test)
+print("SIM Pin changed: "+str(gsm.changePin(pin, new_pin)))
+
 # Set module clock to current date
 print("Clock set: "+gsm.setCurrentDateToInternalClock())
 
@@ -175,6 +189,14 @@ else:
   print("Signal strength: Wrong value")
 print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
 print("List of operators: "+str(gsm.getOperatorNames()))
+print("Neighbour cells: "+str(gsm.getNeighbourCells()))
+print("Accumulated call meter: "+str(gsm.getAccumulatedCallMeter())+" home units")
+print("Accumulated call meter max: "+str(gsm.getAccumulatedCallMeterMaximum())+" home units")
+print("Is temperature critical: "+str(gsm.isTemperatureCritical()))
+print("Is in sleep mode: "+str(gsm.isInSleepMode()))
+
+# Reboot (an init is needed to use gsm functions after such a call)
+print("Reboot: "+str(gsm.reboot()))
 
 # At the end, close connection with GSM module
 gsm.close()
@@ -184,15 +206,12 @@ gsm.close()
 ##TODO list
 
   - Add functionalities (class + command line):
-    * [ENHANCEMENT] Add reboot support
-    * [ENHANCEMENT] Integrate sleep mode (wake up with alarm/SMS/call(/temperature))
-    * [ENHANCEMENT] Add ACM and ACMmax support
-    * [ENHANCEMENT] Add Monitor neighbour cells support
-    * [ENHANCEMENT] Improve PIN-PUK support (handle PUK and change password)
+    * [ENHANCEMENT] Add sleep mode (sleep and wake up with alarm/SMS/call/temperature)
+    * [ENHANCEMENT] Add PUK support
     * [ENHANCEMENT] Add call forwarding support
     * [ENHANCEMENT] Add loudspeaker/microphone volume/mute support
     * [ENHANCEMENT] Add operator selection and preferred operator list support
-    * [ENHANCEMENT] Add fax support (will not be done by me)
+    * [ENHANCEMENT] Add fax support (... maybe in 100 years)
   - [ENHANCEMENT] Add python demo forwarding all incoming SMS to specific email or phone number
   - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
   - [ENHANCEMENT] Update the __init__.py file
