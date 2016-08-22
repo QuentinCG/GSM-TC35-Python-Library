@@ -1427,6 +1427,26 @@ class GSMTC35:
                                         +str(current_pin))
 
 
+  def changePin(self, old_pin, new_pin):
+    """Edit PIN number stored in the SIM card
+
+    Note: A call to this function will lock SIM Pin
+          You need to call {unlockSimPin()} to unlock it.
+
+    Keyword arguments:
+      old_pin -- (int or string) Current PIN
+      new_pin -- (int or string) PIN to use for future PIN login
+
+    return: (bool) SIM PIN edited
+    """
+    if not self.lockSimPin(old_pin):
+      logging.error("Impossible to lock SIM card with PIN before changing PIN")
+      return False
+
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CPWD=\"SC\",\""
+                                        +str(old_pin)+"\",\""+str(new_pin)+"\"")
+
+
 ################################# HELP FUNCTION ################################
 def __help(func="", filename=__file__):
   """Show help on how to use command line GSM module functions
