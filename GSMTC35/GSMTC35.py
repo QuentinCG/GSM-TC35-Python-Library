@@ -937,7 +937,7 @@ class GSMTC35:
 
 
   ############################### TIME FUNCTIONS ###############################
-  def setCurrentDateToInternalClock(self):
+  def setInternalClockToCurrentDate(self):
     """Set the GSM module internal clock to current date
 
     return: (bool) Date successfully modified

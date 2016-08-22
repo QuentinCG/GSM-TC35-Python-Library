@@ -173,7 +173,7 @@ new_pin = pin # (Just for test)
 print("SIM Pin changed: "+str(gsm.changePin(pin, new_pin)))
 
 # Set module clock to current date
-print("Clock set: "+gsm.setCurrentDateToInternalClock())
+print("Clock set: "+gsm.setInternalClockToCurrentDate())
 
 # Show additional information
 print("GSM module Manufacturer ID: "+str(gsm.getManufacturerId()))
