@@ -206,7 +206,9 @@ gsm.close()
 ##TODO list
 
   - Add functionalities (class + command line):
-    * [ENHANCEMENT] Add sleep mode (sleep and wake up with alarm/SMS/call/temperature)
+    * [FIX] Use datetime and not string for date report (will be needed for alarm)
+    * [NORMAL] Add alarm support (internal)
+    * [NORMAL] Add sleep mode (sleep and wake up with alarm/SMS/call/temperature)
     * [ENHANCEMENT] Add PUK support
     * [ENHANCEMENT] Add call forwarding support
     * [ENHANCEMENT] Add loudspeaker/microphone volume/mute support
