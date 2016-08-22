@@ -897,6 +897,45 @@ class GSMTC35:
     return int_result
 
 
+  def isTemperatureCritical(self):
+    """Check if the temperature of the module is inside or outside the
+       warning limits.
+
+    return: (bool) Temperature is critical (warning sent by the module)
+    """
+    is_critical = False
+
+    result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__BASE_AT+"^SCTM?")
+
+    if result == "" or len(result) <= 8 or result[0:7] != "^SCTM: ":
+      logging.error("Command to get the temperature status failed")
+      return is_critical
+
+    # Get result without "^SCTM:"
+    result = result[7:]
+
+    # Split data
+    split_list = result.split(",")
+    if len(split_list) < 2:
+      logging.error("Impossible to split temperature status")
+      return is_critical
+
+    # Get the received temperature status (2nd element)
+    try:
+      if int(split_list[1]) != 0:
+        is_critical = True
+      else:
+        is_critical = False
+    except ValueError:
+      logging.error("Impossible to convert \""+str(split_list[1])+"\" into integer")
+      return is_critical
+
+    # Delete the "OK" of the request from the buffer
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    return is_critical
+
+
   ############################### TIME FUNCTIONS ###############################
   def setCurrentDateToInternalClock(self):
     """Set the GSM module internal clock to current date
