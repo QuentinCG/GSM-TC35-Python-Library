@@ -786,6 +786,56 @@ class GSMTC35:
     return result
 
 
+  def getNeighbourCells(self, waiting_time_sec=5):
+    """Get neighbour cells
+
+    Keyword arguments:
+      waiting_time_sec -- (int, optional) Time to wait query to execute
+
+    return: ([{'chann':(int), 'rs':(int), 'dbm':(int), 'plmn':(int), 'bcc':(int), 'c1':(int), 'c2':(int)}, ...]) List of neighbour cells
+      chann (int): ARFCN (Absolute Frequency Channel Number) of the BCCH carrier
+      rs (int): RSSI (Received signal strength) of the BCCH carrier, decimal value from
+          0 to 63. The indicated value is composed of the measured value in dBm
+          plus an offset. This is in accordance with a formula specified in 3GPP TS 05.08.
+      dbm (int): Receiving level in dBm
+      plmn (int): Public land mobile network (PLMN) ID code
+      bcc (int): Base station colour code
+      c1 (int): Coefficient for base station selection
+      c2 (int): Coefficient for base station reselection
+    """
+    neighbour_cells = []
+
+    lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__BASE_AT+"^MONP",
+                                           additional_timeout=waiting_time_sec)
+
+    for line in lines:
+      if len(line) <= 0:
+        continue
+
+      split_line = line.split()
+      if len(split_line) >= 7:
+        try:
+          neighbour_cell = {}
+          neighbour_cell['chann'] = int(split_line[0])
+          neighbour_cell['rs'] = int(split_line[1])
+          neighbour_cell['dbm'] = int(split_line[2])
+          neighbour_cell['plmn'] = int(split_line[3])
+          neighbour_cell['bcc'] = int(split_line[4])
+          neighbour_cell['c1'] = int(split_line[5])
+          neighbour_cell['c2'] = int(split_line[6])
+          neighbour_cells.append(neighbour_cell)
+        except ValueError:
+          if split_line[0] == "chann":
+            # We don't need to get first line returned by the GSM module
+            pass
+          else:
+            logging.warning("Invalid numbers for neighbour cell \""+str(line)+"\"")
+      else:
+        logging.warning("Invalid number of element to parse for neighbour cell \""+str(line)+"\"")
+
+    return neighbour_cells
+
+
   ############################### TIME FUNCTIONS ###############################
   def setCurrentDateToInternalClock(self):
     """Set the GSM module internal clock to current date
