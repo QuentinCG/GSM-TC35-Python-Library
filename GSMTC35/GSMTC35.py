@@ -43,7 +43,7 @@ __status__ = "Usable for any project"
 import serial, serial.tools.list_ports
 import time, sys, getopt
 import logging
-from datetime import datetime
+import datetime
 
 class GSMTC35:
   """GSM TC35 class
@@ -621,7 +621,7 @@ class GSMTC35:
 
     return: (bool) Alarm successfully set
     """
-    date = self.getDateFromInternalClock():
+    date = self.getDateFromInternalClock()
     if date == -1:
       return False
 
@@ -1019,7 +1019,7 @@ class GSMTC35:
 
     return: (bool) Date successfully modified
     """
-    return self.__setInternalClockToSpecificDate(datetime.now())
+    return self.__setInternalClockToSpecificDate(datetime.datetime.now())
 
 
   def getDateFromInternalClock(self):
@@ -1042,7 +1042,7 @@ class GSMTC35:
 
     # Get the date from string format to date type
     try:
-      return datetime.strptime(date, GSMTC35.__DATE_FORMAT)
+      return datetime.datetime.strptime(date, GSMTC35.__DATE_FORMAT)
     except ValueError:
       return -1
 
