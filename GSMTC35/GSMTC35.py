@@ -43,6 +43,7 @@ __status__ = "Usable for any project"
 import serial, serial.tools.list_ports
 import time, sys, getopt
 import logging
+from datetime import datetime
 
 class GSMTC35:
   """GSM TC35 class
@@ -60,6 +61,7 @@ class GSMTC35:
   __RETURN_OK = "OK"
   __RETURN_ERROR = "ERROR"
   __CTRL_Z = "\x1a"
+  __DATE_FORMAT = "%y/%m/%d,%H:%M:%S"
 
   class eSMS:
     ALL_SMS = "ALL"
@@ -582,6 +584,18 @@ class GSMTC35:
     return self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"IPR="+str(baudrate))
 
 
+  def __setInternalClockToSpecificDate(self, date):
+    """Set the GSM module internal clock to specific date
+
+    Keyword arguments:
+      date -- (datetime.datetime) Date to set in the internal clock
+
+    return: (bool) Date successfully modified
+    """
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CCLK=\""
+                                        +date.strftime(GSMTC35.__DATE_FORMAT)+"\"")
+
+
   ######################## INFO AND UTILITY FUNCTIONS ##########################
   def isAlive(self):
     """Check if the GSM module is alive (answers to AT commands)
@@ -949,23 +963,20 @@ class GSMTC35:
 
     return: (bool) Date successfully modified
     """
-    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CCLK=\""
-                                        +time.strftime("%y/%m/%d,%H:%M:%S")+"\"")
+    return self.__setInternalClockToSpecificDate(datetime.now())
 
 
   def getDateFromInternalClock(self):
     """Get the date from the GSM module internal clock
 
-    return: (string) Date (format: %y/%m/%d,%H:%M:%S)
+    return: (datetime.datetime) Date stored in the GSM module or -1 if an error occured
     """
-    date = ""
-
     # Send the command to get the date
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CCLK?",
                                               content="+CCLK: ")
     if result == "" or len(result) <= 8 or result[:7] != "+CCLK: ":
       logging.error("Command to get internal clock failed")
-      return date
+      return -1
 
     # Get date result without "+CCLK: " and delete quote
     date = GSMTC35.__deleteQuote(result[7:])
@@ -973,7 +984,13 @@ class GSMTC35:
     # Delete last "OK" from buffer
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
-    return date
+    # Get the date from string format to date type
+    try:
+      return datetime.strptime(date, GSMTC35.__DATE_FORMAT)
+    except ValueError:
+      return -1
+
+    return -1
 
 
   ############################ PHONEBOOK FUNCTIONS #############################
