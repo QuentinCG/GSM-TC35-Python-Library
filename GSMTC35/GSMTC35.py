@@ -738,6 +738,9 @@ class GSMTC35:
   def switchOff(self):
     """Switch off the module (module will not respond after this request)
 
+    Connection to serial port is also terminated, an init will be needed
+    to use this class again.
+
     return: (bool) Switch off successful
     """
     # Send request and get data
@@ -745,6 +748,10 @@ class GSMTC35:
                                           result="MS OFF")
     # Delete the "OK" of the request from the buffer
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+    if result:
+      self.close()
+
     return result
 
 
