@@ -590,6 +590,46 @@ class GSMTC35:
                                         +date.strftime(GSMTC35.__DATE_FORMAT)+"\"")
 
 
+  def __addAlarm(self, date, message=""):
+    """Add an alarm to show a message at the exact specified time
+
+    Note: The reference date is the  one from the internal clock
+          (see {getDateFromInternalClock()} to get the reference clock)
+
+    Keyword arguments:
+      date -- (datetime.datetime) Date
+
+    return: (bool) Alarm successfully set
+    """
+    message_in_cmd = ""
+    if len(message) > 0:
+      message_in_cmd = ",\""+str(message)+"\""
+
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CALA=\""
+                                        +date.strftime(GSMTC35.__DATE_FORMAT)
+                                        +"\",0,0"+message_in_cmd)
+
+
+  def __addAlarmAsAChrono(self, time_in_sec, message=""):
+    """Add an alarm to show a message in {time_in_sec} seconds
+
+    Note: The reference date is the  one from the internal clock
+          (see {getDateFromInternalClock()} to get the reference clock)
+
+    Keyword arguments:
+      time_in_sec -- (int) Time to wait before the alarm will happen
+
+    return: (bool) Alarm successfully set
+    """
+    date = self.getDateFromInternalClock():
+    if date == -1:
+      return False
+
+    date = date + datetime.timedelta(seconds=time_in_sec)
+
+    return self.__addAlarm(date, message)
+
+
   def __disableAsynchronousTriggers(self):
     """Disable asynchronous triggers (SMS, calls, temperature)
 
