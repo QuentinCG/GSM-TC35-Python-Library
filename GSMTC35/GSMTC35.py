@@ -14,6 +14,7 @@
     - Call/Re-call
     - Hang up/Pick-up call
     - Get/Add/Delete phonebook entries (phone numbers + contact names)
+    - Sleep (Low power consumption)
     - Check if someone is calling
     - Check if there is a call in progress
     - Get last call duration
@@ -1567,6 +1568,88 @@ class GSMTC35:
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return False
+
+
+  def sleep(self, wake_up_with_timer_in_sec=-1, wake_up_with_call=False,
+            wake_up_with_sms=False, wake_up_with_temperature_warning=False):
+    """Blocking sleep until a specific action occurs (enter low power mode)
+
+    Keyword arguments:
+      wake_up_with_timer_in_sec -- (int) Time before waking-up the module (in sec), -1 to not use timer
+      wake_up_with_call -- (bool) Wake-up the module if a call is received
+      wake_up_with_sms -- (bool) Wake-up the module if a SMS is received
+      wake_up_with_temperature_warning -- (bool) Wake-up the module too high or too low
+
+    return: (bool, bool, bool, bool, bool) Sleep was entered and is now finished, Waked-up by timer,
+                                           Waked-up by call, Waked-up by SMS, Waked-up by temperature
+    """
+    min_alarm_sec = 10
+    gsm_waked_up_by_alarm = False
+    gsm_waked_up_by_call = False
+    gsm_waked_up_by_sms = False
+    gsm_waked_up_by_temperature = False
+
+    # Do not allow infinite sleep (better stop the device with {switchOff()})
+    if (not wake_up_with_call) and (not wake_up_with_sms) \
+       and (not wake_up_with_temperature_warning) \
+       and (wake_up_with_timer_in_sec < min_alarm_sec):
+      logging.error("Sleep can't be used without any possibility to wake up")
+      logging.error("Be sure at least one trigger is used (and timer >= 10sec)")
+      return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    # Enable all requested wake up
+    if wake_up_with_call:
+      if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CLIP=1"):
+        logging.error("Impossible to enable the wake up with call")
+        self.__disableAsynchronousTriggers()
+        return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    if wake_up_with_sms:
+      if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CNMI=1,1"):
+        logging.error("Impossible to enable the wake up with SMS")
+        self.__disableAsynchronousTriggers()
+        return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    if wake_up_with_temperature_warning:
+      if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"^SCTM=1"):
+        logging.error("Impossible to enable the wake up with temperature report")
+        self.__disableAsynchronousTriggers()
+        return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    if wake_up_with_timer_in_sec >= min_alarm_sec:
+      if not self.__addAlarmAsAChrono(wake_up_with_timer_in_sec + 1): # Add one sec (due to query time)
+        logging.error("Impossible to enable the wake up with alarm")
+        self.__disableAsynchronousTriggers()
+        return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    # Sleep
+    if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CFUN=0"):
+      logging.error("Impossible to enable sleep mode")
+      self.__disableAsynchronousTriggers()
+      return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    # Wait until a trigger stops the sleep mode
+    while True:
+      # Wait any element to arrive from buffer (means sleep mode not
+      data = self.__getNotEmptyLine(additional_timeout=3600)
+
+      # At least one character was received (it means sleep mode is not active anymore)
+      if len(data) > 0:
+        if len(data) >= 5:
+          type = data[:5]
+          if type == "+CMTI":
+            gsm_waked_up_by_sms = True
+          elif type == "+CLIP" or type == "RING":
+            gsm_waked_up_by_call = True
+          elif type == "^SCTM":
+            gsm_waked_up_by_temperature = True
+          elif type == "+CALA":
+            gsm_waked_up_by_alarm = True
+
+      # Set to asynchronous element to default state
+      self.__disableAsynchronousTriggers()
+
+      return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
 
 ################################# HELP FUNCTION ################################

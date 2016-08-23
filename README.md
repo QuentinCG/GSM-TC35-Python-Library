@@ -20,6 +20,7 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Call/Re-call (possible to hide phone number)
   - Hang-up/Pick-up call
   - Get/Add/Delete phonebook entries (phone numbers + contact names)
+  - Sleep with wake up possibilities (Low power consumption)
   - Check if someone is calling
   - Check if there is a call in progress
   - Check call status (call/ringing/...) and get the associated phone number
@@ -195,6 +196,13 @@ print("Accumulated call meter max: "+str(gsm.getAccumulatedCallMeterMaximum())+"
 print("Is temperature critical: "+str(gsm.isTemperatureCritical()))
 print("Is in sleep mode: "+str(gsm.isInSleepMode()))
 
+# Make the GSM module sleep for 20sec (may be wake up by received call or SMS)
+sleep_ok, timer_wake, call_wake, sms_wake, temp_wake = \
+  gsm.sleep(wake_up_with_timer_in_sec=20, wake_up_with_call=True,
+            wake_up_with_sms=True)
+print("GSM was in sleep mode ("+str(sleep_ok)+"), wake-up by: Timer ("
+      +str(timer_wake)+") or a call ("+str(call_wake)+") or a SMS ("+str(sms_wake)+")")
+
 # Reboot (an init is needed to use gsm functions after such a call)
 print("Reboot: "+str(gsm.reboot()))
 
@@ -206,7 +214,6 @@ gsm.close()
 ##TODO list
 
   - Add functionalities (class + command line):
-    * [NORMAL] Add sleep mode (sleep and wake up with alarm/SMS/call/temperature)
     * [ENHANCEMENT] Add PUK support
     * [ENHANCEMENT] Add call forwarding support
     * [ENHANCEMENT] Add loudspeaker/microphone volume/mute support
