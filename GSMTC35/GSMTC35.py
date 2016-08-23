@@ -38,7 +38,7 @@ __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
 __copyright__ = "Copyright Quentin Comte-Gaz (2016)"
 __python_version__ = "2.7+ and 3.+"
-__version__ = "1.0 (2016/08/18)"
+__version__ = "1.1 (2016/08/23)"
 __status__ = "Usable for any project"
 
 import serial, serial.tools.list_ports
