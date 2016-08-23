@@ -206,6 +206,9 @@ print("GSM was in sleep mode ("+str(sleep_ok)+"), wake-up by: Timer ("
 # Reboot (an init is needed to use gsm functions after such a call)
 print("Reboot: "+str(gsm.reboot()))
 
+# Switch off device (gsm will not respond after such a call)
+print("Switched off: "+str(gsm.switchOff()))
+
 # At the end, close connection with GSM module
 gsm.close()
 ```
