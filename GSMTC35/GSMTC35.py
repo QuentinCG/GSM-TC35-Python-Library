@@ -207,6 +207,10 @@ class GSMTC35:
 
   def close(self):
     """Close GSM session (free the GSM serial port)"""
+    # Try to put auto-baudrate mode back
+    self.__selectBaudrateCommunicationType(0)
+
+    # Then close the serial port
     self.__serial.close()
 
 
