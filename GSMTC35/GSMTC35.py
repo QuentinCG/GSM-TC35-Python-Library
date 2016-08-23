@@ -185,15 +185,9 @@ class GSMTC35:
         else:
           logging.warning("Some initialization may not work without PIN activated")
 
-      # Don't show calling phone number
-      if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
-        logging.warning("Can't disable mode showing phone number when calling (CLIP command)")
-      # Don't show received SMS in buffer without query
-      if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CNMI=0,0"):
-        logging.warning("Can't disable mode showing received SMS (CNMI command)")
-      # Don't show temperature issue without query
-      if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"^SCTM=0"):
-        logging.warning("Can't disable mode showing critical temperature (SCTM command)")
+      #Disable asynchronous triggers (SMS, calls, temperature)
+      self.__disableAsynchronousTriggers()
+
       # Set to text mode
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.error("Impossible to set module to text mode (CMGF command)")
@@ -594,6 +588,28 @@ class GSMTC35:
     """
     return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CCLK=\""
                                         +date.strftime(GSMTC35.__DATE_FORMAT)+"\"")
+
+
+  def __disableAsynchronousTriggers(self):
+    """Disable asynchronous triggers (SMS, calls, temperature)
+
+    return: (bool) All triggers disabled
+    """
+    all_disable = True
+    # Don't show received call in buffer without query
+    if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CLIP=0"):
+      logging.warning("Can't disable mode showing phone number when calling (CLIP command)")
+      all_disable = False
+    # Don't show received SMS in buffer without query
+    if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CNMI=0,0"):
+      logging.warning("Can't disable mode showing received SMS (CNMI command)")
+      all_disable = False
+    # Don't show temperature issue without query
+    if not self.__sendCmdAndCheckResult(GSMTC35.__BASE_AT+"^SCTM=0"):
+      logging.warning("Can't disable mode showing critical temperature (SCTM command)")
+      all_disable = False
+
+    return all_disable
 
 
   ######################## INFO AND UTILITY FUNCTIONS ##########################
