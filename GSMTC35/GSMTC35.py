@@ -1456,7 +1456,7 @@ class GSMTC35:
 
   ################################ PIN FUNCTIONS ###############################
   def isPinRequired(self):
-    """Check if the SIM card PIN is ready (not waiting PIN, PUK, ...)
+    """Check if the SIM card PIN is ready (PUK may also be needed)
 
     return: (bool) is SIM card PIN still needed to access phone functions
     """
