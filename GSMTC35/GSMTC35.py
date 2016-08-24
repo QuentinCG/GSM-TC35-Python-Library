@@ -150,7 +150,10 @@ class GSMTC35:
     return: (bool) Module initialized
     """
     # Close potential previous GSM session
-    self.close()
+    try:
+      self.close()
+    except Exception:
+      pass
 
     # Create new GSM session
     self.__timeout_sec = _timeout_sec
