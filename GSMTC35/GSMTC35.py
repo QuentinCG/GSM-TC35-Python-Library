@@ -1465,6 +1465,9 @@ class GSMTC35:
     else:
       logging.warning("Impossible to get phone number")
 
+    # Delete last "OK" from buffer
+    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
     return call_state, phone
 
 
