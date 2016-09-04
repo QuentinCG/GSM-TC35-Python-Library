@@ -1072,7 +1072,7 @@ class GSMTC35:
       phonebook_type -- (GSMTC35.ePhonebookType, optional) Phonebook type
       waiting_time_sec -- (int, optional) Time to wait phonebook entries to be sent by GSM module
 
-    return: ([{index=(int), phone_number=(string), contact_name=(string)}, ...])
+    return: ([{index:(int), phone_number:(string), contact_name:(string)}, ...])
       List of dictionary (each dictionary is a phonebook entry containing the
       entry index, the phone number and the contact name)
     """
