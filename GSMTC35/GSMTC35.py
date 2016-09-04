@@ -1213,7 +1213,7 @@ class GSMTC35:
                                         additional_timeout=network_delay_sec)
 
 
-  def getSMS(self, sms_type=eSMS.ALL_SMS, waiting_time_sec=5):
+  def getSMS(self, sms_type=eSMS.ALL_SMS, waiting_time_sec=10):
     """Get SMS
 
     Keyword arguments:
