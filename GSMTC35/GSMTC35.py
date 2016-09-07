@@ -1408,9 +1408,9 @@ class GSMTC35:
   def getLastCallDuration(self):
     """Get duration of last call
 
-    return: (string) Last call duration (format: %H:%M:%S, max: 9999:59:59)
+    return: (int or long) Last call duration in seconds (-1 if error)
     """
-    call_duration = ""
+    call_duration = -1
 
     # Send the command to get the last call duration
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__BASE_AT+"^SLCD",
@@ -1423,6 +1423,13 @@ class GSMTC35:
 
     # Get the call duration
     call_duration = result[7:]
+
+    # Convert to seconds
+    try:
+      h, m, s = call_duration.split(':')
+      call_duration = int(h) * 3600 + int(m) * 60 + int(s)
+    except ValueError:
+      pass
 
     # Delete last "OK" from buffer
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
@@ -2040,7 +2047,7 @@ def main():
       else:
         print("Signal strength: Wrong value")
       print("Date from internal clock: "+str(gsm.getDateFromInternalClock()))
-      print("Last call duration: "+str(gsm.getLastCallDuration()))
+      print("Last call duration: "+str(gsm.getLastCallDuration())+"sec")
 
       list_operators = gsm.getOperatorNames()
       operators = ""

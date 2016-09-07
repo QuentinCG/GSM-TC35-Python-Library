@@ -133,7 +133,7 @@ print("Called: "+str(gsm.call(phone_number="0601234567", hide_phone_number=False
 print("Re-called: "+str(gsm.reCall()))
 
 # Last call duration
-print("Last call duration: "+str(gsm.getLastCallDuration()))
+print("Last call duration: "+str(gsm.getLastCallDuration())+"sec")
 
 # Pick up call
 print("Picked up: "+str(gsm.pickUpCall()))
