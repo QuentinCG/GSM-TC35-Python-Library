@@ -214,19 +214,6 @@ gsm.close()
 ```
 
 
-##TODO list
-
-  - Add functionalities (class + command line):
-    * [ENHANCEMENT] Add PUK support
-    * [ENHANCEMENT] Add call forwarding support
-    * [ENHANCEMENT] Add loudspeaker/microphone volume/mute support
-    * [ENHANCEMENT] Add operator selection and preferred operator list support
-    * [ENHANCEMENT] Add fax support (... maybe in 100 years)
-  - [ENHANCEMENT] Add python demo forwarding all incoming SMS to specific email or phone number
-  - [ENHANCEMENT] Add manifest and setup.py to install this library really fast
-  - [ENHANCEMENT] Update the __init__.py file
-
-
 ## License
 
 This project is under MIT license. This means you can use it as you want (just don't delete the library header).
