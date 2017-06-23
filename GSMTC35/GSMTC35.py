@@ -36,11 +36,12 @@
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
-__copyright__ = "Copyright Quentin Comte-Gaz (2016)"
+__copyright__ = "Copyright Quentin Comte-Gaz (2017)"
 __python_version__ = "2.7+ and 3.+"
-__version__ = "1.1 (2016/08/23)"
+__version__ = "1.2 (2017/06/23)"
 __status__ = "Usable for any project"
 
+import binascii
 import serial, serial.tools.list_ports
 import time, sys, getopt
 import logging
@@ -1203,7 +1204,7 @@ class GSMTC35:
 
   ############################### SMS FUNCTIONS ################################
   def sendSMS(self, phone_number, msg, network_delay_sec=5):
-    """Send SMS to specific phone number
+    """Send SMS without special char (max 140 char) to specific phone number
 
     Keyword arguments:
       phone_number -- (string) Phone number (can be local or international)
@@ -1216,6 +1217,70 @@ class GSMTC35:
                                         +phone_number+"\"",
                                         after=msg+GSMTC35.__CTRL_Z,
                                         additional_timeout=network_delay_sec)
+
+
+  def sendSmsWithSpecialChar(self, phone_number, msg, network_delay_sec=5):
+    """Send SMS (max 70 char) containing special char to specific phone number
+
+    Keyword arguments:
+      phone_number -- (string) Phone number (can be local or international)
+      msg -- (unicode) Message to send
+      network_delay_sec -- (int) Network delay to add when waiting SMS to be send
+
+    return: (bool) SMS sent
+    """
+    result = False
+
+    if self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0"):
+      # Encode message into UCS-2
+      encoded_message = binascii.hexlify(msg.encode('utf-16')).decode()
+      encoded_message = encoded_message[4:len(encoded_message)-2]
+      print(type(encoded_message))
+      if len(encoded_message) % 4 != 0:
+        encoded_message = str("00") + str(encoded_message)
+      logging.debug("encoded_message="+encoded_message)
+
+      # Encode phone number
+      encoded_phone_number = ""
+      phone_number = phone_number.replace("+","")
+      previous_char_phone = ""
+      current_pos = 0
+      for c in phone_number:
+        current_pos = current_pos + 1
+        if current_pos % 2 == 0:
+          encoded_phone_number = str(encoded_phone_number) + str(c) + str(previous_char_phone)
+        previous_char_phone = c
+      encoded_phone_number = str(encoded_phone_number) + str("F") + str(previous_char_phone)
+      logging.debug("encoded_phone_number="+encoded_phone_number)
+
+      # Get phone number length
+      encoded_phone_number_length = format((len(encoded_phone_number) - 1), 'x')
+      if len(encoded_phone_number_length) != 2:
+        encoded_phone_number_length = "0" + encoded_phone_number_length
+      logging.debug("encoded_phone_number_length="+str(encoded_phone_number_length))
+
+      # Get message length
+      encoded_message_length = format(int(2*((len(msg)))), 'x')
+      if len(encoded_message_length) % 2 != 0:
+        encoded_message_length = "0" + encoded_message_length
+      logging.debug("encoded_message_length="+str(encoded_message_length))
+
+      # Create fully encoded message
+      encoded_message = "000100" + encoded_phone_number_length + "91" + encoded_phone_number + "0008" + encoded_message_length + encoded_message
+      encoded_message = encoded_message.upper()
+      logging.debug("fully encoded message="+encoded_message)
+
+      result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS="
+                                            +str(int((len(encoded_message)-1)/2)),
+                                            after=encoded_message+GSMTC35.__CTRL_Z,
+                                            additional_timeout=network_delay_sec)
+
+      if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=1"):
+        logging.warning("Could not go back to text mode")
+    else:
+      logging.error("Could not go to PDU mode")
+
+    return result
 
 
   def getSMS(self, sms_type=eSMS.ALL_SMS, waiting_time_sec=10):
@@ -1819,9 +1884,9 @@ def __help(func="", filename=__file__):
   elif func == "":
     print("PICK UP CALL (-n, --pickUpCall): Pick up (answer) call")
 
-  # Send SMS
+  # Send normal SMS (140 normal char)
   if func in ("s", "sendsms"):
-    print("Send SMS\r\n"
+    print("Send normal SMS (140 normal char)\r\n"
           +"\r\n"
           +"Usage:\r\n"
           +filename+" -s [phone number] [message]\r\n"
@@ -1832,7 +1897,22 @@ def __help(func="", filename=__file__):
           +filename+" --sendSMS 0601234567 \"Hello!\"\r\n")
     return
   elif func == "":
-    print("SEND SMS (-s, --sendSMS): Send SMS")
+    print("SEND BASIC SMS (-s, --sendSMS): Send normal SMS (140 normal char)")
+
+  # Send special SMS (70 unicode char)
+  if func in ("e", "sendSpecialSMS"):
+    print("Send special SMS (70 unicode char)\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -e [phone number] [message]\r\n"
+          +filename+" --sendSpecialSMS [phone number] [message]\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -e +33601234567 \"你好，你是？\"\r\n"
+          +filename+" --sendSpecialSMS +33601234567 \"你好，你是？\"\r\n")
+    return
+  elif func == "":
+    print("SEND UNICODE SMS (-e, --sendSpecialSMS): Send special SMS (70 unicode char)")
 
   # Get SMS
   if func in ("g", "getsms"):
@@ -1888,7 +1968,8 @@ def __help(func="", filename=__file__):
           +" - Call someone: "+filename+" --serialPort COM4 --pin 1234 --call +33601234567\r\n"
           +" - Hang up call: "+filename+" --serialPort COM4 --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
-          +" - Send SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\n"
+          +" - Send basic SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\n"
+          +" - Send extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 \"你好，你是？\"\r\n"
           +" - Get all SMS: "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information")
@@ -1903,8 +1984,8 @@ def __help(func="", filename=__file__):
 def main():
   """Shell GSM utility function"""
 
-  #logger = logging.getLogger()
-  #logger.setLevel(logging.WARNING)
+  logger = logging.getLogger()
+  logger.setLevel(logging.DEBUG)
 
   baudrate = 115200
   serial_port = ""
@@ -1912,10 +1993,10 @@ def main():
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hactsdgniob:u:p:",
+    opts, args = getopt.getopt(sys.argv[1:], "hactsedgniob:u:p:",
                                ["baudrate=", "serialPort=", "pin=", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
-                                "pickUpCall", "sendSMS", "deleteSMS", "getSMS",
+                                "pickUpCall", "sendSMS", "sendSpecialSMS", "deleteSMS", "getSMS",
                                 "information"])
   except getopt.GetoptError as err:
     print("[ERROR] "+str(err))
@@ -1978,6 +2059,7 @@ def main():
       if is_alive:
         sys.exit(0)
       sys.exit(2)
+
     elif o in ("-c", "--call"):
       if len(args) > 0:
         if args[0] != "":
@@ -1992,6 +2074,7 @@ def main():
       else:
         print("[ERROR] You must specify a phone number to call")
         sys.exit(2)
+
     elif o in ("-t", "--hangUpCall"):
       print("Hanging up call...")
       result = gsm.hangUpCall()
@@ -1999,12 +2082,27 @@ def main():
       if result:
         sys.exit(0)
       sys.exit(2)
+
     elif o in ("-s", "--sendSMS"):
       if len(args) < 2:
         print("[ERROR] You need to specify the phone number and the message")
         sys.exit(1)
       print("SMS sent: "+str(gsm.sendSMS(str(args[0]), str(args[1]))))
       sys.exit(0)
+
+    elif o in ("-d", "--sendSpecialSMS"):
+      if len(args) < 2:
+        print("[ERROR] You need to specify the phone number and the message")
+        sys.exit(1)
+      msg = args[1]
+      # Python2.7-3 compatibility:
+      try:
+        msg = args[1].decode('utf-8')
+      except AttributeError:
+        pass
+      print("Special SMS sent: "+str(gsm.sendSmsWithSpecialChar(str(args[0]), msg)))
+      sys.exit(0)
+
     elif o in ("-d", "--deleteSMS"):
       if len(args) < 1:
         print("[ERROR] You need to specify the type of SMS to delete")
@@ -2013,6 +2111,7 @@ def main():
         sys.exit(1)
       print("SMS deleted: "+str(gsm.deleteSMS(str(args[0]))))
       sys.exit(0)
+
     elif o in ("-g", "--getSMS"):
       if len(args) < 1:
         print("[ERROR] You need to specify the type of SMS to get")
@@ -2031,10 +2130,12 @@ def main():
       print("Picking up call...")
       print("Pick up call: "+str(gsm.pickUpCall()))
       sys.exit(0)
+
     elif o in ("-i", "--isSomeoneCalling"):
       result = gsm.isSomeoneCalling()
       print("Is someone calling: "+str(result))
       sys.exit(0)
+
     elif o in ("-o", "--information"):
       if not gsm.isAlive():
         print("GSM module is not alive, can't get information")
