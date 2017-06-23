@@ -432,7 +432,12 @@ class GSMTC35:
     """
     self.__deleteAllRxData()
     self.__sendLine(cmd, after)
-    return self.__waitDataContains(result, error_result, additional_timeout)
+    result = self.__waitDataContains(result, error_result, additional_timeout)
+
+    if not result:
+      logging.error("Sending \""+str(cmd)+"\" and \""+str(after)+"\" failed")
+
+    return result
 
 
   def __deleteSpecificSMS(self, index):
