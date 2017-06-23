@@ -1235,7 +1235,6 @@ class GSMTC35:
       # Encode message into UCS-2
       encoded_message = binascii.hexlify(msg.encode('utf-16')).decode()
       encoded_message = encoded_message[4:len(encoded_message)-2]
-      print(type(encoded_message))
       if len(encoded_message) % 4 != 0:
         encoded_message = str("00") + str(encoded_message)
       logging.debug("encoded_message="+encoded_message)
