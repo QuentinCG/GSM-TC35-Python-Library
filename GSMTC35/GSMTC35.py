@@ -1223,7 +1223,11 @@ class GSMTC35:
   def _parse_leaving_text(self, msg):
     """convert unicode(utf-8) string to utf-16 byte stream"""
     try:
-      msg = msg.encode("utf-16be").encode("hex").upper()
+      msg = binascii.hexlify(msg.encode('utf-16be')).decode()
+
+      if len(msg) % 4 != 0:
+        logging.warning("Inconsistent message length, prepend 00 to the message to send.")
+        msg = str("00") + str(msg)
 
       # Insert a bom if there isn't one
       bom = msg[:4].lower()
