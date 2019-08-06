@@ -1219,6 +1219,23 @@ class GSMTC35:
                                         additional_timeout=network_delay_sec)
 
 
+  # Function taken from https://github.com/adammck/pygsm/pull/9/commits/887613ca407ded76b5d14f7fb6dd010845f6783e#diff-7d421c331bad5b75de248b3296cc34e4R561
+  def _parse_leaving_text(self, msg):
+    """convert unicode(utf-8) string to utf-16 byte stream"""
+    try:
+      msg = msg.encode("utf-16be").encode("hex").upper()
+
+      # Insert a bom if there isn't one
+      bom = msg[:4].lower()
+      if (bom != "fffe" and bom != "feff"):
+        msg = "feff" + msg
+
+    except:
+      # TODO: Improve exception handling
+      pass
+
+    return msg
+      
   def sendSmsWithSpecialChar(self, phone_number, msg, network_delay_sec=5):
     """Send SMS (max 70 char) containing special char to specific phone number
 
@@ -1233,10 +1250,7 @@ class GSMTC35:
 
     if self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0"):
       # Encode message into UCS-2
-      encoded_message = binascii.hexlify(msg.encode('utf-16')).decode()
-      encoded_message = encoded_message[4:len(encoded_message)-2]
-      if len(encoded_message) % 4 != 0:
-        encoded_message = str("00") + str(encoded_message)
+      encoded_message = self._parse_leaving_text(msg)
       logging.debug("encoded_message="+encoded_message)
 
       # Encode phone number
