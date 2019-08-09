@@ -239,6 +239,20 @@ class GSMTC35:
 
   ######################### INTERNAL UTILITY FUNCTIONS #########################
   @staticmethod
+  def __hexaToUtf16(value):
+    """Decode (if needed) hexa string into UTF-16BE string
+
+    Keyword arguments:
+      value -- (string) Hexa string or not encoded string
+
+    return: (string) Decoded string
+     """
+    try:
+      return str(binascii.unhexlify(value).decode('utf-16be'));
+    except:
+      return str(value)
+
+  @staticmethod
   def __deleteQuote(quoted_string):
     """Delete first and last " or ' from {quoted_string}
 
@@ -1337,6 +1351,7 @@ class GSMTC35:
     for line in lines:
       if line[:7] == "+CMGL: ":
         if bool(sms):
+          sms["sms"] = GSMTC35.__hexaToUtf16(sms["sms"])
           all_sms.append(sms)
         sms = {}
         # Get result without "+CMGL: "
@@ -1367,6 +1382,7 @@ class GSMTC35:
       # An empty line may appear in last SMS due to GSM module communication
       if (len(sms["sms"]) >= 1) and (sms["sms"][len(sms["sms"])-1:len(sms["sms"])] == "\n"):
         sms["sms"] = sms["sms"][:len(sms["sms"])-1]
+      sms["sms"] = GSMTC35.__hexaToUtf16(sms["sms"])
       all_sms.append(sms)
 
     return all_sms
