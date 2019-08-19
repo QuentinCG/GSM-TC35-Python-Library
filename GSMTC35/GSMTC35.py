@@ -1233,8 +1233,7 @@ class GSMTC35:
 
     if self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0"):
       # Encode message into UCS-2
-      encoded_message = binascii.hexlify(msg.encode('utf-16')).decode()
-      encoded_message = encoded_message[4:len(encoded_message)-2]
+      encoded_message = binascii.hexlify(msg.encode('utf-16be')).decode()
       if len(encoded_message) % 4 != 0:
         encoded_message = str("00") + str(encoded_message)
       logging.debug("encoded_message="+encoded_message)
@@ -1265,13 +1264,13 @@ class GSMTC35:
       logging.debug("encoded_message_length="+str(encoded_message_length))
 
       # Create fully encoded message
-      encoded_message = "000100" + encoded_phone_number_length + "91" + encoded_phone_number + "0008" + encoded_message_length + encoded_message
-      encoded_message = encoded_message.upper()
-      logging.debug("fully encoded message="+encoded_message)
+      fully_encoded_message = "000100" + encoded_phone_number_length + "91" + encoded_phone_number + "0008" + encoded_message_length + encoded_message
+      fully_encoded_message = fully_encoded_message.upper()
+      logging.debug("fully encoded message="+fully_encoded_message)
 
       result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS="
-                                            +str(int((len(encoded_message)-1)/2)),
-                                            after=encoded_message+GSMTC35.__CTRL_Z,
+                                            +str(int((len(fully_encoded_message)-1)/2)),
+                                            after=fully_encoded_message+GSMTC35.__CTRL_Z,
                                             additional_timeout=network_delay_sec)
 
       if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=1"):
