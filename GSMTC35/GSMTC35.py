@@ -1967,7 +1967,7 @@ def __help(func="", filename=__file__):
           +" - Hang up call: "+filename+" --serialPort COM4 --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
           +" - Send basic SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\n"
-          +" - Send extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 \"你好，你是？\"\r\n"
+          +" - Send extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 \"éàçù!\"\r\n"
           +" - Get all SMS: "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information")
