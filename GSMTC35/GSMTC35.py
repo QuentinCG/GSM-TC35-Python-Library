@@ -69,6 +69,8 @@ class GSMTC35:
     ALL_SMS = "ALL"
     UNREAD_SMS = "REC UNREAD"
     READ_SMS = "REC READ"
+    SENT_SMS = "STO SENT"
+    UNSENT_SMS = "STO UNSENT"
 
   class eCall:
     NOCALL = -1
