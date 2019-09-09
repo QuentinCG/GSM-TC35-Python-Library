@@ -69,6 +69,8 @@ class GSMTC35:
     ALL_SMS = "ALL"
     UNREAD_SMS = "REC UNREAD"
     READ_SMS = "REC READ"
+    SENT_SMS = "STO SENT"
+    UNSENT_SMS = "STO UNSENT"
 
   class eCall:
     NOCALL = -1
@@ -238,20 +240,6 @@ class GSMTC35:
 
 
   ######################### INTERNAL UTILITY FUNCTIONS #########################
-  @staticmethod
-  def __hexaToUtf16(value):
-    """Decode (if needed) hexa string into UTF-16BE string
-
-    Keyword arguments:
-      value -- (string) Hexa string or not encoded string
-
-    return: (string) Decoded string
-     """
-    try:
-      return str(binascii.unhexlify(value).decode('utf-16be'));
-    except:
-      return str(value)
-
   @staticmethod
   def __deleteQuote(quoted_string):
     """Delete first and last " or ' from {quoted_string}
@@ -1233,27 +1221,6 @@ class GSMTC35:
                                         additional_timeout=network_delay_sec)
 
 
-  # Function taken from https://github.com/adammck/pygsm/pull/9/commits/887613ca407ded76b5d14f7fb6dd010845f6783e#diff-7d421c331bad5b75de248b3296cc34e4R561
-  def _parse_leaving_text(self, msg):
-    """convert unicode(utf-8) string to utf-16 byte stream"""
-    try:
-      msg = binascii.hexlify(msg.encode('utf-16be')).decode()
-
-      if len(msg) % 4 != 0:
-        logging.warning("Inconsistent message length, prepend 00 to the message to send.")
-        msg = str("00") + str(msg)
-
-      # Insert a bom if there isn't one
-      bom = msg[:4].lower()
-      if (bom != "fffe" and bom != "feff"):
-        msg = "feff" + msg
-
-    except:
-      # TODO: Improve exception handling
-      pass
-
-    return msg
-      
   def sendSmsWithSpecialChar(self, phone_number, msg, network_delay_sec=5):
     """Send SMS (max 70 char) containing special char to specific phone number
 
@@ -1268,7 +1235,9 @@ class GSMTC35:
 
     if self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0"):
       # Encode message into UCS-2
-      encoded_message = self._parse_leaving_text(msg)
+      encoded_message = binascii.hexlify(msg.encode('utf-16be')).decode()
+      if len(encoded_message) % 4 != 0:
+        encoded_message = str("00") + str(encoded_message)
       logging.debug("encoded_message="+encoded_message)
 
       # Encode phone number
@@ -1297,13 +1266,13 @@ class GSMTC35:
       logging.debug("encoded_message_length="+str(encoded_message_length))
 
       # Create fully encoded message
-      encoded_message = "000100" + encoded_phone_number_length + "91" + encoded_phone_number + "0008" + encoded_message_length + encoded_message
-      encoded_message = encoded_message.upper()
-      logging.debug("fully encoded message="+encoded_message)
+      fully_encoded_message = "000100" + encoded_phone_number_length + "91" + encoded_phone_number + "0008" + encoded_message_length + encoded_message
+      fully_encoded_message = fully_encoded_message.upper()
+      logging.debug("fully encoded message="+fully_encoded_message)
 
       result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS="
-                                            +str(int((len(encoded_message)-1)/2)),
-                                            after=encoded_message+GSMTC35.__CTRL_Z,
+                                            +str(int((len(fully_encoded_message)-1)/2)),
+                                            after=fully_encoded_message+GSMTC35.__CTRL_Z,
                                             additional_timeout=network_delay_sec)
 
       if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=1"):
@@ -1351,7 +1320,6 @@ class GSMTC35:
     for line in lines:
       if line[:7] == "+CMGL: ":
         if bool(sms):
-          sms["sms"] = GSMTC35.__hexaToUtf16(sms["sms"])
           all_sms.append(sms)
         sms = {}
         # Get result without "+CMGL: "
@@ -1382,7 +1350,6 @@ class GSMTC35:
       # An empty line may appear in last SMS due to GSM module communication
       if (len(sms["sms"]) >= 1) and (sms["sms"][len(sms["sms"])-1:len(sms["sms"])] == "\n"):
         sms["sms"] = sms["sms"][:len(sms["sms"])-1]
-      sms["sms"] = GSMTC35.__hexaToUtf16(sms["sms"])
       all_sms.append(sms)
 
     return all_sms
@@ -2002,7 +1969,7 @@ def __help(func="", filename=__file__):
           +" - Hang up call: "+filename+" --serialPort COM4 --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
           +" - Send basic SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\n"
-          +" - Send extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 \"你好，你是？\"\r\n"
+          +" - Send extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 \"éàçù!\"\r\n"
           +" - Get all SMS: "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information")
