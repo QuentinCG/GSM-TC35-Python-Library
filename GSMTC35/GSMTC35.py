@@ -2401,7 +2401,7 @@ def main():
           logging.warning("Can't display SMS content as unicode, displaying it as utf-8")
           print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
                 +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
-                + str(sms["sms"].encode("utf-8")))
+                +"): "+str(sms["sms"].encode("utf-8")))
       sys.exit(0)
 
     elif o in ("-n", "--pickUpCall"):
