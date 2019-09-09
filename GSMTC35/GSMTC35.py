@@ -79,6 +79,7 @@ class GSMTC35:
     SENT_SMS = "3"
     ALL_SMS = "4"
 
+  @staticmethod
   def __smsTypeTextToPdu(smsTypeAsText):
     if smsTypeAsText == GSMTC35.eSMS.UNREAD_SMS:
       return GSMTC35.__eSmsPdu.UNREAD_SMS
@@ -100,6 +101,7 @@ class GSMTC35:
       # If an error occured, get all messages
       return GSMTC35.__eSmsPdu.ALL_SMS
 
+  @staticmethod
   def __smsTypePduToText(smsTypeAsPdu):
     if smsTypeAsPdu == GSMTC35.__eSmsPdu.UNREAD_SMS:
       return GSMTC35.eSMS.UNREAD_SMS
@@ -716,6 +718,7 @@ class GSMTC35:
 
     return all_disable
 
+  @staticmethod
   def __unpack7bit(bytes):
     """Decode byte with Default Alphabet encoding ('7bit')
 
@@ -730,6 +733,7 @@ class GSMTC35:
     except ValueError:
       return ''
 
+  @staticmethod
   def __unpack8bit(bytes):
     """Decode hexa byte encoded with 8bit encoding
 
@@ -741,6 +745,7 @@ class GSMTC35:
     bytes = [ord(x) for x in bytes]
     return ''.join([chr(x) for x in bytes])
 
+  @staticmethod
   def __unpackUCS2(bytes):
     """Decode hexa byte encoded with extended encoding (UTF-16 / UCS2)
 
@@ -751,6 +756,7 @@ class GSMTC35:
     """
     return bytes.decode('utf_16_be')
 
+  @staticmethod
   def __decodePduSms(msg):
     """Decode PDU SMS content
 
@@ -883,7 +889,7 @@ class GSMTC35:
       logging.error("Not possible to decode")
       return result
 
-    result["sms"] = str(user_data)
+    result["sms"] = user_data
     logging.debug("Decoded SMS content: "+result["sms"])
 
     return result
@@ -1558,7 +1564,7 @@ class GSMTC35:
           if is_decoded and ("sms" in decoded_data) and ("phone_number" in decoded_data) \
              and ("date" in decoded_data) and ("time" in decoded_data):
             # SMS is valid (merge data and add to all sms
-            sms = {**sms, **decoded_data}
+            sms.update(decoded_data)
             all_sms.append(sms)
 
           # Let's check if there is other sms !
