@@ -2121,9 +2121,15 @@ def main():
       received_sms = gsm.getSMS(str(args[0]))
       print("List of SMS:")
       for sms in received_sms:
-        print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
-              +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
-              +"): "+str(sms["sms"]))
+        try:
+          print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+                +"): "+str(sms["sms"]))
+        except UnicodeEncodeError:
+          logging.warning("Can't display SMS content as unicode, displaying it as utf-8")
+          print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+                + str(sms["sms"].encode("utf-8")))
       sys.exit(0)
 
     elif o in ("-n", "--pickUpCall"):
