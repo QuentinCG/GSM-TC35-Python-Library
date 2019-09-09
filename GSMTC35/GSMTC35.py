@@ -36,9 +36,9 @@
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
-__copyright__ = "Copyright Quentin Comte-Gaz (2017)"
+__copyright__ = "Copyright Quentin Comte-Gaz (2019)"
 __python_version__ = "2.7+ and 3.+"
-__version__ = "1.2 (2017/06/23)"
+__version__ = "1.3 (2019/09/10)"
 __status__ = "Usable for any project"
 
 import binascii
