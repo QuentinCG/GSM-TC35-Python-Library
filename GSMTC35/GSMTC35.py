@@ -36,9 +36,9 @@
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
-__copyright__ = "Copyright Quentin Comte-Gaz (2017)"
+__copyright__ = "Copyright Quentin Comte-Gaz (2019)"
 __python_version__ = "2.7+ and 3.+"
-__version__ = "1.2 (2017/06/23)"
+__version__ = "1.3 (2019/09/10)"
 __status__ = "Usable for any project"
 
 import binascii
@@ -66,11 +66,62 @@ class GSMTC35:
   __DATE_FORMAT = "%y/%m/%d,%H:%M:%S"
 
   class eSMS:
-    ALL_SMS = "ALL"
     UNREAD_SMS = "REC UNREAD"
     READ_SMS = "REC READ"
-    SENT_SMS = "STO SENT"
     UNSENT_SMS = "STO UNSENT"
+    SENT_SMS = "STO SENT"
+    ALL_SMS = "ALL"
+
+  class __eSmsPdu:
+    UNREAD_SMS = "0"
+    READ_SMS = "1"
+    UNSENT_SMS = "2"
+    SENT_SMS = "3"
+    ALL_SMS = "4"
+
+  @staticmethod
+  def __smsTypeTextToPdu(smsTypeAsText):
+    if smsTypeAsText == GSMTC35.eSMS.UNREAD_SMS:
+      return GSMTC35.__eSmsPdu.UNREAD_SMS
+    elif smsTypeAsText == GSMTC35.eSMS.READ_SMS:
+      return GSMTC35.__eSmsPdu.READ_SMS
+    elif smsTypeAsText == GSMTC35.eSMS.UNSENT_SMS:
+      return GSMTC35.__eSmsPdu.UNSENT_SMS
+    elif smsTypeAsText == GSMTC35.eSMS.SENT_SMS:
+      return GSMTC35.__eSmsPdu.SENT_SMS
+    elif smsTypeAsText == GSMTC35.eSMS.ALL_SMS:
+      return GSMTC35.__eSmsPdu.ALL_SMS
+    elif smsTypeAsText == GSMTC35.__eSmsPdu.UNREAD_SMS or \
+         smsTypeAsText == GSMTC35.__eSmsPdu.READ_SMS or \
+         smsTypeAsText == GSMTC35.__eSmsPdu.UNSENT_SMS or \
+         smsTypeAsText == GSMTC35.__eSmsPdu.SENT_SMS or \
+         smsTypeAsText == GSMTC35.__eSmsPdu.ALL_SMS:
+      return smsTypeAsText
+    else:
+      # If an error occured, get all messages
+      return GSMTC35.__eSmsPdu.ALL_SMS
+
+  @staticmethod
+  def __smsTypePduToText(smsTypeAsPdu):
+    if smsTypeAsPdu == GSMTC35.__eSmsPdu.UNREAD_SMS:
+      return GSMTC35.eSMS.UNREAD_SMS
+    elif smsTypeAsPdu == GSMTC35.__eSmsPdu.READ_SMS:
+      return GSMTC35.eSMS.READ_SMS
+    elif smsTypeAsPdu == GSMTC35.__eSmsPdu.UNSENT_SMS:
+      return GSMTC35.eSMS.UNSENT_SMS
+    elif smsTypeAsPdu == GSMTC35.__eSmsPdu.SENT_SMS:
+      return GSMTC35.eSMS.SENT_SMS
+    elif smsTypeAsPdu == GSMTC35.__eSmsPdu.ALL_SMS:
+      return GSMTC35.eSMS.ALL_SMS
+    elif smsTypeAsPdu == GSMTC35.eSMS.UNREAD_SMS or \
+         smsTypeAsPdu == GSMTC35.eSMS.READ_SMS or \
+         smsTypeAsPdu == GSMTC35.eSMS.UNSENT_SMS or \
+         smsTypeAsPdu == GSMTC35.eSMS.SENT_SMS or \
+         smsTypeAsPdu == GSMTC35.eSMS.ALL_SMS:
+      return smsTypeAsPdu
+    else:
+      # If an error occured, get all messages
+      return GSMTC35.eSMS.ALL_SMS
 
   class eCall:
     NOCALL = -1
@@ -667,6 +718,196 @@ class GSMTC35:
 
     return all_disable
 
+  @staticmethod
+  def __unpack7bit(bytes):
+    """Decode byte with Default Alphabet encoding ('7bit')
+
+    Keyword arguments:
+      bytes -- (bytes) Content to decode as hexa
+
+    return: (bytes) Decoded content
+    """
+    try:
+      bytes = ''.join(["{0:08b}".format(int(bytes[i:i+2], 16)) for i in range(0, len(bytes), 2)][::-1])
+      return ''.join([chr(int(bytes[::-1][i:i+7][::-1], 2)) for i in range(0, len(bytes), 7)])
+    except ValueError:
+      return ''
+
+  @staticmethod
+  def __unpack8bit(bytes):
+    """Decode hexa byte encoded with 8bit encoding
+
+    Keyword arguments:
+      bytes -- (bytes) Content to decode
+
+    return: (bytes) Decoded content
+    """
+    bytes = [ord(x) for x in bytes]
+    return ''.join([chr(x) for x in bytes])
+
+  @staticmethod
+  def __unpackUCS2(bytes):
+    """Decode hexa byte encoded with extended encoding (UTF-16 / UCS2)
+
+    Keyword arguments:
+      bytes -- (bytes) Content to decode
+
+    return: (bytes) Decoded content
+    """
+    return bytes.decode('utf_16_be')
+
+  @staticmethod
+  def __decodePduSms(msg, decode_sms):
+    """Decode PDU SMS content
+
+    Keyword arguments:
+      msg -- (string) PDU hexa string to decoded
+      decode_sms -- (bool) Is it needed to decode SMS content ?
+
+    return: (list) List of decoded content containing potentially 'phone_number', 'date', 'time', 'sms',
+                   'service_center_type', 'service_center_phone_number', 'phone_number_type', 'charset'
+    """
+    result = {}
+
+    # Be sure message is of hexa type
+    try:
+      int(str(msg), 16)
+    except ValueError:
+      logging.error("Can't decode PDU SMS because is not hexadecimal content: \""+str(msg)+"\"")
+      return result
+
+    # Service center data (type and phone number)
+    lengthServiceCenter = int(msg[:2], 16)
+    msg = msg[2:]
+
+    serviceCenterType = int(msg[:2], 16)
+    result["service_center_type"] = serviceCenterType
+    msg = msg[2:]
+
+    serviceCenterEncodedPhone = msg[:lengthServiceCenter*2-2]
+    if (lengthServiceCenter%2 != 0):
+      serviceCenterEncodedPhone = serviceCenterEncodedPhone[0:len(serviceCenterEncodedPhone)-2] + serviceCenterEncodedPhone[len(serviceCenterEncodedPhone)-1:]
+    msg = msg[lengthServiceCenter*2-2:]
+
+    serviceCenterDecodedPhone = ""
+    for number in range(0,lengthServiceCenter*2-3):
+      if number %2 == 0:
+        serviceCenterDecodedPhone = serviceCenterDecodedPhone + serviceCenterEncodedPhone[number]
+      else:
+        serviceCenterDecodedPhone = serviceCenterDecodedPhone[:len(serviceCenterDecodedPhone) - 1] + str(serviceCenterEncodedPhone[number]) + serviceCenterDecodedPhone[len(serviceCenterDecodedPhone) - 1:]
+    result["service_center_phone_number"] = str(serviceCenterDecodedPhone)
+
+    # First byte
+    firstByte = int(msg[:2], 16)
+    msg = msg[2:]
+
+    # Sender Phone data (type and number)
+    lengthSenderPhoneNumber = int(msg[:2], 16)
+    msg = msg[2:]
+
+    senderType = int(msg[:2], 16)
+    msg = msg[2:]
+    result["phone_number_type"] = senderType
+
+    phoneNumberEncoded = msg[:lengthSenderPhoneNumber+1]
+    if (lengthSenderPhoneNumber%2 != 0):
+      phoneNumberEncoded = phoneNumberEncoded[0:len(phoneNumberEncoded)-2] + phoneNumberEncoded[len(phoneNumberEncoded)-1:]
+    msg = msg[lengthSenderPhoneNumber+1:]
+
+    phoneNumberDecoded = ""
+    if senderType == GSMTC35.__ePhoneNumberType.INTERNATIONAL:
+      phoneNumberDecoded = "+" + phoneNumberDecoded
+
+    for number in range(0,lengthSenderPhoneNumber):
+      if number %2 == 0:
+        phoneNumberDecoded = phoneNumberDecoded + phoneNumberEncoded[number]
+      else:
+        phoneNumberDecoded = phoneNumberDecoded[:len(phoneNumberDecoded) - 1] + str(phoneNumberEncoded[number]) + phoneNumberDecoded[len(phoneNumberDecoded) - 1:]
+
+    result["phone_number"] = str(phoneNumberDecoded)
+
+    # Protocol ID / TP-PID
+    protocolId = int(msg[:2], 16)
+    msg = msg[2:]
+
+    # Data coding scheme / TP-DCS
+    dataCodingScheme = int(msg[:2], 16)
+    msg = msg[2:]
+
+    # Timestamp
+    timestampEncoded = msg[:14]
+    msg = msg[14:]
+    dateDecoded = timestampEncoded[1] + timestampEncoded[0] + "/" \
+                       + timestampEncoded[3] + timestampEncoded[2] + "/" \
+                       + timestampEncoded[5] + timestampEncoded[4]
+    timeDecoded = timestampEncoded[7] + timestampEncoded[6] + ":" \
+                       + timestampEncoded[9] + timestampEncoded[8] + ":" \
+                       + timestampEncoded[11] + timestampEncoded[10] + ""
+    gmt = timestampEncoded[13] + timestampEncoded[12]
+    gmtDecoded = ""
+    if (int(gmt[1], 16) >= 8):
+      gmtDecoded = "GMT-"
+      gmt = gmt[0] + str(int(gmt[1], 16) - 8)
+    else:
+      gmtDecoded += "GMT+"
+    gmtDecoded += str(int(gmt, 10)/4)
+    result["date"] = str(dateDecoded)
+    result["time"] = str(str(timeDecoded)+" "+str(gmtDecoded))
+
+    # Message content
+    messageLength = int(msg[:2], 16)
+    msg = msg[2:]
+
+    # Charset
+    if (dataCodingScheme & 0xc0) == 0:
+      if dataCodingScheme & 0x20:
+        logging.error("Not possible to find correct encoding")
+        if decode_sms:
+          return result
+        else:
+          charset = "unknown"
+      try:
+        charset = {0x00: '7bit', 0x04: '8bit', 0x08: 'utf16-be'}[dataCodingScheme & 0x0c]
+      except KeyError:
+        logging.error("Not possible to find correct encoding")
+        if decode_sms:
+          return result
+        else:
+          charset = "unknown"
+    elif (dataCodingScheme & 0xf0) in (0xc0, 0xd0):
+      charset = '7bit'
+    elif (dataCodingScheme & 0xf0) == 0xe0:
+      charset = 'utf16-be'
+    elif (dataCodingScheme & 0xf0) == 0xf0:
+      charset = {0x00: '7bit', 0x04: '8bit'}[dataCodingScheme & 0x04]
+    else:
+      logging.error("Not possible to find correct encoding")
+      if decode_sms:
+        return result
+      else:
+        charset = "unknown"
+
+    result["charset"] = str(charset)
+
+    # SMS content
+    logging.debug("Encoded "+str(charset)+" SMS content: "+str(msg))
+    if decode_sms:
+      if charset == '7bit':  # Default Alphabet aka basic 7 bit coding - 03.38 S6.2.1
+        user_data = GSMTC35.__unpack7bit(msg)
+      elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
+        user_data = GSMTC35.__unpack8bit(binascii.unhexlify(msg))
+      elif charset == 'utf16-be':  # UTF-16 aka UCS2, S6.2.3
+        user_data = GSMTC35.__unpackUCS2(binascii.unhexlify(msg))
+      else:
+        logging.error("Not possible to find correct encoding")
+        return result
+
+      result["sms"] = user_data
+      logging.debug("Decoded SMS content: "+result["sms"])
+    else:
+      result["sms"] = msg
+
+    return result
 
   ######################## INFO AND UTILITY FUNCTIONS ##########################
   def isAlive(self):
@@ -1283,12 +1524,14 @@ class GSMTC35:
     return result
 
 
-  def getSMS(self, sms_type=eSMS.ALL_SMS, waiting_time_sec=10):
-    """Get SMS
+  def getSMS(self, sms_type=eSMS.ALL_SMS, decode_sms=True, force_text_mode=False, waiting_time_sec=10):
+    """Get SMS (using PDU mode, fallback with Text mode if failed)
 
     Keyword arguments:
       sms_type -- (string) Type of SMS to get (possible values: GSMTC35.eSMS.ALL_SMS,
                            GSMTC35.eSMS.UNREAD_SMS or GSMTC35.eSMS.READ_SMS)
+      decode_sms -- (bool, optional, default: True) Decode SMS content or keep it in encoded format (+ charset)
+      force_text_mode -- (bool, optional, default: False) Force to use 'text mode' instead of 'pdu mode' to get sms (may lead to inconsistent sms content)
       waiting_time_sec -- (int, optional) Time to wait SMS to be displayed by GSM module
 
     return: ([{"index":, "status":, "phone_number":, "date":, "time":, "sms":},]) List of requested SMS (list of dictionaries)
@@ -1298,59 +1541,117 @@ class GSMTC35:
               - phone_number (string) Phone number which send the SMS
               - date (string) Date SMS was received
               - time (string) Time SMS was received
-              - sms (string) Content of the SMS
+              - sms (string) Content of the SMS (encoded or decoded depending on decode_sms keyword and if PDU mode used/worked)
+              If PDU mode worked, additional 'bonus' fields will be available:
+              - phone_number_type (int) Phone number type using GSM 04.08 specification (145 <=> international, 129 <=> national)
+              - service_center_type (int) Service center phone number type using GSM 04.08 specification (145 <=> international, 129 <=> national)
+              - service_center_phone_number (string) Service center phone number
+              - charset (string) Charset used by the sender to encode the SMS
     """
-    all_lines_retrieved = False
-    lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL=\""+str(sms_type)+"\"", error_result="",
-                                           additional_timeout=waiting_time_sec)
-    while not all_lines_retrieved:
-      # Make sure the "OK" sent by the module is not part of an SMS
-      if len(lines) > 0:
-        additional_line = self.__getNotEmptyLine("", "", 0)
-        if len(additional_line) > 0:
-          lines.append(self.__RETURN_OK) # Lost SMS part
-          lines.append(additional_line)
+    all_sms = []
+
+    using_text_mode = force_text_mode
+    if not force_text_mode:
+      # Trying to go in PDU mode (if fails, use text mode)
+      using_text_mode = not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0")
+
+    if not using_text_mode:
+      # Getting SMS using PDU mode
+      all_lines_retrieved = False
+      lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL="+GSMTC35.__smsTypeTextToPdu(str(sms_type)), error_result="",
+                                             additional_timeout=waiting_time_sec)
+      sms = {}
+      for line in lines:
+        if line[:7] == "+CMGL: ":
+          # A new SMS is found
+          line = line[7:]
+          split_list = line.split(",")
+          if len(split_list) >= 4:
+            try:
+              sms["index"] = int(split_list[0])
+              sms["status"] = GSMTC35.__smsTypePduToText(split_list[1])
+            except ValueError:
+              logging.error("One of the SMS is not valid, command options: \""+str(line)+"\"")
+              sms = {}
+        elif "index" in sms:
+          # Content of the previously detected SMS should be there
+          is_decoded = False
+          try:
+            decoded_data = GSMTC35.__decodePduSms(line, decode_sms)
+            is_decoded = True
+          except ValueError:
+            logging.error("One of the SMS is not valid, sms hexa content: \""+str(line)+"\"")
+
+          if is_decoded and ("sms" in decoded_data) and ("phone_number" in decoded_data) \
+             and ("date" in decoded_data) and ("time" in decoded_data) and ("charset" in decoded_data):
+            # SMS is valid (merge sms data and add sms to all sms)
+            sms.update(decoded_data)
+            all_sms.append(sms)
+
+          # Let's check if there is other sms !
+          sms = {}
+        else:
+          # Inconsistent data, continue
+          logging.warning("One of the SMS is not valid, command options (2): \""+str(line)+"\"")
+          sms = {}
+      # Go back to text mode
+      if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=1"):
+        logging.warning("Could not go back to text mode")
+    else:
+      # Getting SMS using text mode
+      if using_text_mode and (not force_text_mode):
+        logging.warning("Could not go to PDU mode, trying to get sms with normal mode, some character may not be displayed")
+      all_lines_retrieved = False
+      lines = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CMGL=\""+str(sms_type)+"\"", error_result="",
+                                             additional_timeout=waiting_time_sec)
+      while not all_lines_retrieved:
+        # Make sure the "OK" sent by the module is not part of an SMS
+        if len(lines) > 0:
+          additional_line = self.__getNotEmptyLine("", "", 0)
+          if len(additional_line) > 0:
+            lines.append(self.__RETURN_OK) # Lost SMS part
+            lines.append(additional_line)
+          else:
+            all_lines_retrieved = True
         else:
           all_lines_retrieved = True
-      else:
-        all_lines_retrieved = True
-    # Parse SMS from lines
-    sms = {}
-    all_sms = []
-    for line in lines:
-      if line[:7] == "+CMGL: ":
-        if bool(sms):
-          all_sms.append(sms)
-        sms = {}
-        # Get result without "+CMGL: "
-        line = line[7:]
-        # Split remaining data from the line
-        split_list = line.split(",")
-        if len(split_list) >= 6:
-          try:
-            sms["index"] = int(split_list[0])
-            sms["status"] = GSMTC35.__deleteQuote(split_list[1])
-            sms["phone_number"] = GSMTC35.__deleteQuote(split_list[2])
-            sms["date"] = GSMTC35.__deleteQuote(split_list[4])
-            sms["time"] = GSMTC35.__deleteQuote(split_list[5])
-            sms["sms"] = ""
-          except ValueError:
-            logging.error("One of the SMS is not valid, command options: \""+str(line)+"\"")
-            sms = {}
-      elif bool(sms):
-        if ("sms" in sms) and (sms["sms"] != ""):
-          sms["sms"] = sms["sms"] + "\n" + line
+      # Parse SMS from lines
+      sms = {}
+      for line in lines:
+        if line[:7] == "+CMGL: ":
+          if bool(sms):
+            all_sms.append(sms)
+          sms = {}
+          # Get result without "+CMGL: "
+          line = line[7:]
+          # Split remaining data from the line
+          split_list = line.split(",")
+          if len(split_list) >= 6:
+            try:
+              sms["index"] = int(split_list[0])
+              sms["status"] = GSMTC35.__deleteQuote(split_list[1])
+              sms["phone_number"] = GSMTC35.__deleteQuote(split_list[2])
+              sms["date"] = GSMTC35.__deleteQuote(split_list[4])
+              sms["time"] = GSMTC35.__deleteQuote(split_list[5])
+              sms["sms"] = ""
+              sms["charset"] = "TC35TextModeInconsistentCharset"
+            except ValueError:
+              logging.error("One of the SMS is not valid, command options: \""+str(line)+"\"")
+              sms = {}
+        elif bool(sms):
+          if ("sms" in sms) and (sms["sms"] != ""):
+            sms["sms"] = sms["sms"] + "\n" + line
+          else:
+            sms["sms"] = line
         else:
-          sms["sms"] = line
-      else:
-        logging.error("\""+line+"\" not usable")
+          logging.error("\""+line+"\" not usable")
 
-    # Last SMS must also be stored
-    if ("index" in sms) and ("sms" in sms) and not (sms in all_sms):
-      # An empty line may appear in last SMS due to GSM module communication
-      if (len(sms["sms"]) >= 1) and (sms["sms"][len(sms["sms"])-1:len(sms["sms"])] == "\n"):
-        sms["sms"] = sms["sms"][:len(sms["sms"])-1]
-      all_sms.append(sms)
+      # Last SMS must also be stored
+      if ("index" in sms) and ("sms" in sms) and not (sms in all_sms):
+        # An empty line may appear in last SMS due to GSM module communication
+        if (len(sms["sms"]) >= 1) and (sms["sms"][len(sms["sms"])-1:len(sms["sms"])] == "\n"):
+          sms["sms"] = sms["sms"][:len(sms["sms"])-1]
+        all_sms.append(sms)
 
     return all_sms
 
@@ -1932,6 +2233,42 @@ def __help(func="", filename=__file__):
   elif func == "":
     print("GET SMS (-g, --getSMS): Get SMS")
 
+  # Get encoded SMS
+  if func in ("f", "getencodedsms"):
+    print("Get SMS\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -f [sms type]\r\n"
+          +filename+" --getEncodedSMS [sms type]\r\n"
+          +"SMS Type: \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+          +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""
+          +str(GSMTC35.eSMS.READ_SMS)+"\"\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -f \""+str(GSMTC35.eSMS.UNREAD_SMS)+"\"\r\n"
+          +filename+" --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n")
+    return
+  elif func == "":
+    print("GET ENCODED SMS (-f, --getEncodedSMS): Get SMS in Hexadecimal without decoding")
+
+  # Get Text mode SMS
+  if func in ("j", "gettextmodesms"):
+    print("Get SMS\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -j [sms type]\r\n"
+          +filename+" --getTextModeSMS [sms type]\r\n"
+          +"SMS Type: \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+          +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""
+          +str(GSMTC35.eSMS.READ_SMS)+"\"\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -j \""+str(GSMTC35.eSMS.UNREAD_SMS)+"\"\r\n"
+          +filename+" --getTextModeSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n")
+    return
+  elif func == "":
+    print("GET TEXT MODE SMS (-j, --getTextModeSMS): Get SMS using Text Mode TC35 decoding (NOT RECOMMENDED)")
+
   # Delete SMS
   if func in ("d", "deletesms"):
     print("Delete SMS\r\n"
@@ -1970,7 +2307,8 @@ def __help(func="", filename=__file__):
           +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
           +" - Send basic SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\n"
           +" - Send extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 \"éàçù!\"\r\n"
-          +" - Get all SMS: "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
+          +" - Get all SMS (decoded): "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
+          +" - Get all SMS (encoded): "+filename+" --serialPort COM4 --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information")
 
@@ -1993,11 +2331,11 @@ def main():
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hactsedgniob:u:p:",
+    opts, args = getopt.getopt(sys.argv[1:], "hactsedgfjniob:u:p:",
                                ["baudrate=", "serialPort=", "pin=", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
                                 "pickUpCall", "sendSMS", "sendSpecialSMS", "deleteSMS", "getSMS",
-                                "information"])
+                                "information", "getEncodedSMS", "getTextModeSMS"])
   except getopt.GetoptError as err:
     print("[ERROR] "+str(err))
     __help()
@@ -2120,6 +2458,44 @@ def main():
         sys.exit(1)
       received_sms = gsm.getSMS(str(args[0]))
       print("List of SMS:")
+      for sms in received_sms:
+        try:
+          print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+                +"): "+str(sms["sms"]))
+        except UnicodeEncodeError:
+          logging.warning("Can't display SMS content as unicode, displaying it as utf-8")
+          print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+                +"): "+str(sms["sms"].encode("utf-8")))
+      sys.exit(0)
+
+    elif o in ("-f", "--getEncodedSMS"):
+      if len(args) < 1:
+        print("[ERROR] You need to specify the type of SMS to get")
+        print("[ERROR] Possible values: \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+              +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""+str(GSMTC35.eSMS.READ_SMS)+"\"")
+        sys.exit(1)
+      received_sms = gsm.getSMS(str(args[0]), False)
+      print("List of encoded SMS:")
+      for sms in received_sms:
+        if "charset" in sms:
+          charset = sms["charset"]
+        else:
+          charset = "unknown"
+        print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+              +str(sms["status"])+", "+str(charset)+", "+str(sms["date"])+" "+str(sms["time"])
+              +"): "+str(sms["sms"]))
+      sys.exit(0)
+
+    elif o in ("-j", "--getTextModeSMS"):
+      if len(args) < 1:
+        print("[ERROR] You need to specify the type of SMS to get")
+        print("[ERROR] Possible values: \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
+              +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""+str(GSMTC35.eSMS.READ_SMS)+"\"")
+        sys.exit(1)
+      received_sms = gsm.getSMS(str(args[0]), False, True)
+      print("List of text mode SMS:")
       for sms in received_sms:
         print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
               +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
