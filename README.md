@@ -73,7 +73,7 @@ GSMTC35.py --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 "你好，
 GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
 
 # Get SMS (encoded, in hexadecimal, charset specified in response)
-GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
+GSMTC35.py --serialPort COM4 --pin 1234 --getEncodedSMS "ALL"
 
 # Get SMS (decoded by TC35 using 'Text Mode', NOT RECOMMENDED)
 GSMTC35.py --serialPort COM4 --pin 1234 --getTextModeSMS "ALL"
