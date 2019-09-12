@@ -46,6 +46,7 @@ import serial, serial.tools.list_ports
 import time, sys, getopt
 import logging
 import datetime
+from math import ceil
 
 class GSMTC35:
   """GSM TC35 class
@@ -719,7 +720,7 @@ class GSMTC35:
     return all_disable
 
   @staticmethod
-  def __unpack7bit(bytes):
+  def __unpack7bit(bytes, hl=0):
     """Decode byte with Default Alphabet encoding ('7bit')
 
     Keyword arguments:
@@ -728,8 +729,33 @@ class GSMTC35:
     return: (bytes) Decoded content
     """
     try:
-      bytes = ''.join(["{0:08b}".format(int(bytes[i:i+2], 16)) for i in range(0, len(bytes), 2)][::-1])
-      return ''.join([chr(int(bytes[::-1][i:i+7][::-1], 2)) for i in range(0, len(bytes), 7)])
+      unichr
+    except NameError:
+      unichr = chr
+
+    count = last = 0
+    result = []
+    try:
+      for i in range(0, len(bytes), 2):
+        byte = int(bytes[i:i + 2], 16)
+        mask = 0x7F >> count
+        out = ((byte & mask) << count) + last
+        last = byte >> (7 - count)
+        result.append(out)
+
+        if len(result) >= 0xa0:
+          break
+
+        if count == 6:
+          result.append(last)
+          last = 0
+
+        count = (count + 1) % 7
+
+      result = ''.join(map(unichr, result))
+
+      result = result[hl:]
+      return result
     except ValueError:
       return ''
 
@@ -799,6 +825,10 @@ class GSMTC35:
 
     # First byte
     firstByte = int(msg[:2], 16)
+    if firstByte & 0b1000000:
+      contentContainsHeader = True
+    else:
+      contentContainsHeader = False
     msg = msg[2:]
 
     # Sender Phone data (type and number)
@@ -889,11 +919,22 @@ class GSMTC35:
 
     result["charset"] = str(charset)
 
-    # SMS content
+    # SMS content header
+    headerLength = 0
+    if contentContainsHeader:
+      headerLength = int(msg[:2], 16)
+      if headerLength > 0:
+        if charset == '7bit':
+          headerLength = int(ceil(headerLength * 7.0 / 8.0))
+          if ((headerLength % 2) != 0):
+            headerLength = headerLength + 1
+        headerData = msg[2:headerLength]
+
+    # SMS Content
     logging.debug("Encoded "+str(charset)+" SMS content: "+str(msg))
     if decode_sms:
       if charset == '7bit':  # Default Alphabet aka basic 7 bit coding - 03.38 S6.2.1
-        user_data = GSMTC35.__unpack7bit(msg)
+        user_data = GSMTC35.__unpack7bit(msg, headerLength)
       elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
         user_data = GSMTC35.__unpack8bit(binascii.unhexlify(msg))
       elif charset == 'utf16-be':  # UTF-16 aka UCS2, S6.2.3
