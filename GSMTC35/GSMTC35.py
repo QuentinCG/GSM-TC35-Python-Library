@@ -792,7 +792,7 @@ class GSMTC35:
 
     return: (list) List of decoded content containing potentially 'phone_number', 'date', 'time', 'sms',
                    'sms_encoded', 'service_center_type', 'service_center_phone_number', 'phone_number_type',
-                   'charset'
+                   'charset', if exists: 'sms_header' and 'sms_header_encoded'
     """
     result = {}
 
@@ -938,6 +938,8 @@ class GSMTC35:
       user_data = GSMTC35.__unpack7bit(msg, headerLength)
       # Remove header (+ header size byte) from the message
       if contentContainsHeader:
+        result["sms_header"] = user_data[:headerLength+1]
+        result["sms_header_encoded"] = binascii.hexlify(user_data[:headerLength+1].encode()).decode()
         user_data = user_data[headerLength+1:]
       user_data_encoded = binascii.hexlify(user_data.encode()).decode()
     elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
@@ -1599,6 +1601,9 @@ class GSMTC35:
               - service_center_type (int) Service center phone number type using GSM 04.08 specification (145 <=> international, 129 <=> national)
               - service_center_phone_number (string) Service center phone number
               - charset (string) Charset used by the sender to encode the SMS
+              If PDU mode worked and that the SMS has an header:
+              - sms_header (string) Header of the SMS (decoded)
+              - sms_header_encoded (string) Header of the SMS (encoded in hexadecimal readable format)
     """
     all_sms = []
 
@@ -2535,9 +2540,11 @@ def main():
           charset = sms["charset"]
         else:
           charset = "unknown"
-        print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+        res = str(sms["phone_number"])+" (id " +str(sms["index"])+", " \
               +str(sms["status"])+", "+str(charset)+", "+str(sms["date"])+" "+str(sms["time"])
-              +"): "+str(sms["sms_encoded"]))
+        if "sms_header_encoded" in sms:
+          res = res + ", header " + str(sms["sms_header_encoded"])
+        print(res+"): "+str(sms["sms_encoded"]))
       sys.exit(0)
 
     elif o in ("-j", "--getTextModeSMS"):
