@@ -2541,7 +2541,7 @@ def main():
       for sms in received_sms:
         multipart = ""
         if "header_multipart_ref_id" in sms and "header_multipart_nb_of_part" in sms and "header_multipart_current_part_nb" in sms:
-          multipart = ", multipart '" + str(sms["header_multipart_ref_id"]) + "' (" + str(sms["header_multipart_current_part_nb"]) + "/" + str(sms["header_multipart_nb_of_part"])
+          multipart = ", multipart '" + str(sms["header_multipart_ref_id"]) + "' (" + str(sms["header_multipart_current_part_nb"]) + "/" + str(sms["header_multipart_nb_of_part"]) + ")"
         try:
           print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
                 +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])+str(multipart)
@@ -2571,7 +2571,7 @@ def main():
         if "header_iei" in sms and "header_ie_data" in sms:
           res = res + ", header '" + str(sms["header_iei"]) + "' with data: '" + str(sms["header_ie_data"])+"'"
         if "header_multipart_ref_id" in sms and "header_multipart_nb_of_part" in sms and "header_multipart_current_part_nb" in sms:
-          res = res + ", multipart '" + str(sms["header_multipart_ref_id"]) + "' (" + str(sms["header_multipart_current_part_nb"]) + "/" + str(sms["header_multipart_nb_of_part"])
+          res = res + ", multipart '" + str(sms["header_multipart_ref_id"]) + "' (" + str(sms["header_multipart_current_part_nb"]) + "/" + str(sms["header_multipart_nb_of_part"]) + ")"
         print(res+"): "+str(sms["sms_encoded"]))
       sys.exit(0)
 
