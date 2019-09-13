@@ -792,7 +792,10 @@ class GSMTC35:
 
     return: (list) List of decoded content containing potentially 'phone_number', 'date', 'time', 'sms',
                    'sms_encoded', 'service_center_type', 'service_center_phone_number', 'phone_number_type',
-                   'charset', if exists: 'sms_header' and 'sms_header_encoded'
+                   'charset'
+                   if message has an header: 'header_iei', 'header_ie_data'
+                   if message is a multipart message (MMS): 'header_multipart_ref_id',
+                     'header_multipart_current_part_nb', 'header_multipart_nb_of_part'
     """
     result = {}
 
@@ -929,14 +932,14 @@ class GSMTC35:
           headerLength = int(ceil(headerLength * 7.0 / 8.0))
           if ((headerLength % 2) != 0):
             headerLength = headerLength + 1
-        # TODO: Create a real enum for iei + Test + improve documentation to integrate header info
         result["header_iei"] = int(msg[2:4], 16)
         headerIeLength = int(msg[4:6], 16)
-        result["header_ie_data"] = msg[6:6+headerIeLength]
+        result["header_ie_data"] = msg[6:6+headerIeLength*2]
+        # Add multipart information if IEI is of type 'Concatenated short message' (0x00 or 0x08)
         if result["header_iei"] == 0 or result["header_iei"] == 8:
-          result["header_multipart_ref_id"] = int(result["header_data"][:2], 16)
-          result["header_multipart_nb_of_part"] = int(result["header_data"][2:4], 16)
-          result["header_multipart_current_part_nb"] = int(result["header_data"][4:6], 16)
+          result["header_multipart_ref_id"] = int(result["header_ie_data"][:2], 16)
+          result["header_multipart_nb_of_part"] = int(result["header_ie_data"][2:4], 16)
+          result["header_multipart_current_part_nb"] = int(result["header_ie_data"][4:6], 16)
 
     # SMS Content
     user_data = ""
@@ -945,18 +948,18 @@ class GSMTC35:
       user_data = GSMTC35.__unpack7bit(msg, headerLength)
       # Remove header (+ header size byte) from the message
       if contentContainsHeader:
-        result["sms_header"] = user_data[:headerLength+1]
-        result["sms_header_encoded"] = binascii.hexlify(user_data[:headerLength+1].encode()).decode()
         user_data = user_data[headerLength+1:]
       user_data_encoded = binascii.hexlify(user_data.encode()).decode()
     elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
-      # TODO: Handle header message
+      # TODO: Handle header message (please provide me an example full --debug log to help me)
       user_data = GSMTC35.__unpack8bit(binascii.unhexlify(msg))
       user_data_encoded = msg
     elif charset == 'utf16-be':  # UTF-16 aka UCS2, S6.2.3
-      # TODO: Handle header message
       user_data = GSMTC35.__unpackUCS2(binascii.unhexlify(msg))
-      user_data_encoded = msg
+      if contentContainsHeader:
+        user_data = user_data[int(ceil((headerLength+1)/2)):]
+      user_data_encoded = msg[int((headerLength+1)*2):]
+
     else:
       logging.error("Not possible to find correct encoding")
       if decode_sms:
@@ -1611,8 +1614,12 @@ class GSMTC35:
               - service_center_phone_number (string) Service center phone number
               - charset (string) Charset used by the sender to encode the SMS
               If PDU mode worked and that the SMS has an header:
-              - sms_header (string) Header of the SMS (decoded)
-              - sms_header_encoded (string) Header of the SMS (encoded in hexadecimal readable format)
+              - header_iei (int) Header IEI of the SMS
+              - header_ie_data (string) Header IE data of the SMS (encoded in hexadecimal readable format)
+              If PDU mode worked and that the SMS has an header and is multipart (MMS):
+              - header_multipart_ref_id (int) ID of the MMS
+              - header_multipart_current_part_nb (int) Current part of the MMS
+              - header_multipart_nb_of_part (int) Total number of part of the MMS
     """
     all_sms = []
 
@@ -1641,6 +1648,7 @@ class GSMTC35:
               sms = {}
         elif "index" in sms:
           # Content of the previously detected SMS should be there
+          # Do not throw if SMS is not decoded successfully (for reliability)
           is_decoded = False
           try:
             decoded_data = GSMTC35.__decodePduSms(line, decode_sms)
@@ -2531,14 +2539,17 @@ def main():
       received_sms = gsm.getSMS(str(args[0]))
       print("List of SMS:")
       for sms in received_sms:
+        multipart = ""
+        if "header_multipart_ref_id" in sms and "header_multipart_nb_of_part" in sms and "header_multipart_current_part_nb" in sms:
+          multipart = ", multipart '" + str(sms["header_multipart_ref_id"]) + "' (" + str(sms["header_multipart_current_part_nb"]) + "/" + str(sms["header_multipart_nb_of_part"])
         try:
           print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
-                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])+str(multipart)
                 +"): "+str(sms["sms"]))
         except UnicodeEncodeError:
           logging.warning("Can't display SMS content as unicode, displaying it as utf-8")
           print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
-                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
+                +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])+str(multipart)
                 +"): "+str(sms["sms"].encode("utf-8")))
       sys.exit(0)
 
@@ -2557,8 +2568,10 @@ def main():
           charset = "unknown"
         res = str(sms["phone_number"])+" (id " +str(sms["index"])+", " \
               +str(sms["status"])+", "+str(charset)+", "+str(sms["date"])+" "+str(sms["time"])
-        if "sms_header_encoded" in sms:
-          res = res + ", header " + str(sms["sms_header_encoded"])
+        if "header_iei" in sms and "header_ie_data" in sms:
+          res = res + ", header '" + str(sms["header_iei"]) + "' with data: '" + str(sms["header_ie_data"])+"'"
+        if "header_multipart_ref_id" in sms and "header_multipart_nb_of_part" in sms and "header_multipart_current_part_nb" in sms:
+          res = res + ", multipart '" + str(sms["header_multipart_ref_id"]) + "' (" + str(sms["header_multipart_current_part_nb"]) + "/" + str(sms["header_multipart_nb_of_part"])
         print(res+"): "+str(sms["sms_encoded"]))
       sys.exit(0)
 
