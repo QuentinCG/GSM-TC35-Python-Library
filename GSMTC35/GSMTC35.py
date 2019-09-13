@@ -929,10 +929,14 @@ class GSMTC35:
           headerLength = int(ceil(headerLength * 7.0 / 8.0))
           if ((headerLength % 2) != 0):
             headerLength = headerLength + 1
-        headerData = msg[2:headerLength]
-
-        # TODO: Handle header information like "ref number", "part number", "max part" 
-        #       Example on how to do it here: https://smspdu.benjaminerhart.com
+        # TODO: Create a real enum for iei + Test + improve documentation to integrate header info
+        result["header_iei"] = int(msg[2:4], 16)
+        headerIeLength = int(msg[4:6], 16)
+        result["header_ie_data"] = msg[6:6+headerIeLength]
+        if result["header_iei"] == 0 or result["header_iei"] == 8:
+          result["header_multipart_ref_id"] = int(result["header_data"][:2], 16)
+          result["header_multipart_nb_of_part"] = int(result["header_data"][2:4], 16)
+          result["header_multipart_current_part_nb"] = int(result["header_data"][4:6], 16)
 
     # SMS Content
     user_data = ""
