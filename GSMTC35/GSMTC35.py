@@ -2376,7 +2376,9 @@ def __help(func="", filename=__file__):
           +" - Get all SMS (decoded): "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get all SMS (encoded): "+filename+" --serialPort COM4 --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
-          +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information")
+          +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information"+"\"\r\n"
+          +" - You can have a lot more information on how commands are performed using '--debug' command"+"\"\r\n"
+          +" - You can hide debug, warning and error information using '--nodebug' command")
 
     print("\r\nList of available serial ports:")
     ports = list(serial.tools.list_ports.comports())
@@ -2388,17 +2390,14 @@ def __help(func="", filename=__file__):
 def main():
   """Shell GSM utility function"""
 
-  #logger = logging.getLogger()
-  #logger.setLevel(logging.DEBUG)
-
   baudrate = 115200
   serial_port = ""
   pin = -1
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hactsedgfjniob:u:p:",
-                               ["baudrate=", "serialPort=", "pin=", "help",
+    opts, args = getopt.getopt(sys.argv[1:], "hlactsedniogfjzb:u:p:",
+                               ["baudrate=", "serialPort=", "pin=", "debug", "nodebug", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
                                 "pickUpCall", "sendSMS", "sendSpecialSMS", "deleteSMS", "getSMS",
                                 "information", "getEncodedSMS", "getTextModeSMS"])
@@ -2407,7 +2406,7 @@ def main():
     __help()
     sys.exit(1)
 
-  # Show help (if requested)
+  # Show help or add debug information (if requested)
   for o, a in opts:
     if o in ("-h", "--help"):
       if len(args) >= 1:
@@ -2415,6 +2414,13 @@ def main():
       else:
         __help()
       sys.exit(0)
+    elif o in ("-l", "--debug"):
+      print("Debugging...")
+      logger = logging.getLogger()
+      logger.setLevel(logging.DEBUG)
+    elif o in ("-z", "--nodebug"):
+      logger = logging.getLogger()
+      logger.setLevel(logging.CRITICAL)
 
   # Get parameters
   for o, a in opts:

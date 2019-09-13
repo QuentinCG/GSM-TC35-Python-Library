@@ -92,6 +92,9 @@ GSMTC35.py --serialPort COM4 --pin 1234 --pickUpCall
 
 # Show GSM module and network information
 GSMTC35.py --serialPort COM4 --pin 1234 --information
+
+# Use "--debug" to show more information during command
+# Use "--nodebug" to not show any warning information during command
 ```
 
 
