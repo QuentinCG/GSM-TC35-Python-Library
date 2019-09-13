@@ -931,6 +931,9 @@ class GSMTC35:
             headerLength = headerLength + 1
         headerData = msg[2:headerLength]
 
+        # TODO: Handle header information like "ref number", "part number", "max part" 
+        #       Example on how to do it here: https://smspdu.benjaminerhart.com
+
     # SMS Content
     user_data = ""
     logging.debug("Encoded "+str(charset)+" SMS content: "+str(msg))
@@ -943,9 +946,11 @@ class GSMTC35:
         user_data = user_data[headerLength+1:]
       user_data_encoded = binascii.hexlify(user_data.encode()).decode()
     elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
+      # TODO: Handle header message
       user_data = GSMTC35.__unpack8bit(binascii.unhexlify(msg))
       user_data_encoded = msg
     elif charset == 'utf16-be':  # UTF-16 aka UCS2, S6.2.3
+      # TODO: Handle header message
       user_data = GSMTC35.__unpackUCS2(binascii.unhexlify(msg))
       user_data_encoded = msg
     else:
