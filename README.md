@@ -69,10 +69,10 @@ GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell
 # Send SMS (70 unicode char)
 GSMTC35.py --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 "你好，你是？"
 
-# Get SMS (decoded, in plain text)
+# Get SMS/MMS (decoded, in plain text)
 GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
 
-# Get SMS (encoded, in hexadecimal, charset specified in response)
+# Get SMS/MMS (encoded, in hexadecimal, charset specified in response)
 GSMTC35.py --serialPort COM4 --pin 1234 --getEncodedSMS "ALL"
 
 # Get SMS (decoded by TC35 using 'Text Mode', NOT RECOMMENDED)
@@ -130,7 +130,7 @@ print("SMS sent: "+str(gsm.sendSMS("+33601234567", "Hello from python script!!!"
 # Send SMS (70 unicode char)
 print("SMS sent: "+str(gsm.sendSmsWithSpecialChar("+33601234567", u'你好，你是？')))
 
-# Show all received SMS (decoded)
+# Show all received SMS/MMS (decoded)
 rx_sms = gsm.getSMS(GSMTC35.eSMS.ALL_SMS)
 print("List of SMS (decoded):")
 for sms in rx_sms:
@@ -138,7 +138,7 @@ for sms in rx_sms:
         +str(sms["status"])+", "+str(sms["date"])+" "+str(sms["time"])
         +"): "+str(sms["sms"]))
 
-# Show all received SMS (encoded)
+# Show all received SMS/MMS (encoded)
 rx_encoded_sms = gsm.getSMS(GSMTC35.eSMS.ALL_SMS, False)
 print("List of SMS (encoded):")
 for sms in rx_encoded_sms:
