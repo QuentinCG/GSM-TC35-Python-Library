@@ -46,6 +46,7 @@ import serial, serial.tools.list_ports
 import time, sys, getopt
 import logging
 import datetime
+from math import ceil
 
 class GSMTC35:
   """GSM TC35 class
@@ -719,8 +720,10 @@ class GSMTC35:
     return all_disable
 
   @staticmethod
-  def __unpack7bit(bytes):
+  def __unpack7bit(bytes, hl=0):
     """Decode byte with Default Alphabet encoding ('7bit')
+
+    Function logic inspired from https://github.com/pmarti/python-messaging/blob/master/messaging/utils.py#L173
 
     Keyword arguments:
       bytes -- (bytes) Content to decode as hexa
@@ -728,8 +731,31 @@ class GSMTC35:
     return: (bytes) Decoded content
     """
     try:
-      bytes = ''.join(["{0:08b}".format(int(bytes[i:i+2], 16)) for i in range(0, len(bytes), 2)][::-1])
-      return ''.join([chr(int(bytes[::-1][i:i+7][::-1], 2)) for i in range(0, len(bytes), 7)])
+      unichr
+    except NameError:
+      unichr = chr
+
+    count = last = 0
+    result = []
+    try:
+      for i in range(0, len(bytes), 2):
+        byte = int(bytes[i:i + 2], 16)
+        mask = 0x7F >> count
+        out = ((byte & mask) << count) + last
+        last = byte >> (7 - count)
+        result.append(out)
+
+        if len(result) >= 0xa0:
+          break
+
+        if count == 6:
+          result.append(last)
+          last = 0
+
+        count = (count + 1) % 7
+
+      result = ''.join(map(unichr, result))
+      return result
     except ValueError:
       return ''
 
@@ -765,7 +791,8 @@ class GSMTC35:
       decode_sms -- (bool) Is it needed to decode SMS content ?
 
     return: (list) List of decoded content containing potentially 'phone_number', 'date', 'time', 'sms',
-                   'service_center_type', 'service_center_phone_number', 'phone_number_type', 'charset'
+                   'sms_encoded', 'service_center_type', 'service_center_phone_number', 'phone_number_type',
+                   'charset', if exists: 'sms_header' and 'sms_header_encoded'
     """
     result = {}
 
@@ -799,6 +826,10 @@ class GSMTC35:
 
     # First byte
     firstByte = int(msg[:2], 16)
+    if firstByte & 0b1000000:
+      contentContainsHeader = True
+    else:
+      contentContainsHeader = False
     msg = msg[2:]
 
     # Sender Phone data (type and number)
@@ -889,23 +920,45 @@ class GSMTC35:
 
     result["charset"] = str(charset)
 
-    # SMS content
-    logging.debug("Encoded "+str(charset)+" SMS content: "+str(msg))
-    if decode_sms:
-      if charset == '7bit':  # Default Alphabet aka basic 7 bit coding - 03.38 S6.2.1
-        user_data = GSMTC35.__unpack7bit(msg)
-      elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
-        user_data = GSMTC35.__unpack8bit(binascii.unhexlify(msg))
-      elif charset == 'utf16-be':  # UTF-16 aka UCS2, S6.2.3
-        user_data = GSMTC35.__unpackUCS2(binascii.unhexlify(msg))
-      else:
-        logging.error("Not possible to find correct encoding")
-        return result
+    # SMS content header
+    headerLength = 0
+    if contentContainsHeader:
+      headerLength = int(msg[:2], 16)
+      if headerLength > 0:
+        if charset == '7bit':
+          headerLength = int(ceil(headerLength * 7.0 / 8.0))
+          if ((headerLength % 2) != 0):
+            headerLength = headerLength + 1
+        headerData = msg[2:headerLength]
 
-      result["sms"] = user_data
-      logging.debug("Decoded SMS content: "+result["sms"])
+    # SMS Content
+    user_data = ""
+    logging.debug("Encoded "+str(charset)+" SMS content: "+str(msg))
+    if charset == '7bit':  # Default Alphabet aka basic 7 bit coding - 03.38 S6.2.1
+      user_data = GSMTC35.__unpack7bit(msg, headerLength)
+      # Remove header (+ header size byte) from the message
+      if contentContainsHeader:
+        result["sms_header"] = user_data[:headerLength+1]
+        result["sms_header_encoded"] = binascii.hexlify(user_data[:headerLength+1].encode()).decode()
+        user_data = user_data[headerLength+1:]
+      user_data_encoded = binascii.hexlify(user_data.encode()).decode()
+    elif charset == '8bit':  # 8 bit coding is "user defined". S6.2.2
+      user_data = GSMTC35.__unpack8bit(binascii.unhexlify(msg))
+      user_data_encoded = msg
+    elif charset == 'utf16-be':  # UTF-16 aka UCS2, S6.2.3
+      user_data = GSMTC35.__unpackUCS2(binascii.unhexlify(msg))
+      user_data_encoded = msg
     else:
-      result["sms"] = msg
+      logging.error("Not possible to find correct encoding")
+      if decode_sms:
+        return result
+      else:
+        user_data_encoded = msg
+
+    result["sms"] = user_data
+    logging.debug("Decoded SMS content: "+user_data)
+    result["sms_encoded"] = user_data_encoded
+    logging.debug("Re-encoded SMS content: "+user_data_encoded)
 
     return result
 
@@ -1534,19 +1587,23 @@ class GSMTC35:
       force_text_mode -- (bool, optional, default: False) Force to use 'text mode' instead of 'pdu mode' to get sms (may lead to inconsistent sms content)
       waiting_time_sec -- (int, optional) Time to wait SMS to be displayed by GSM module
 
-    return: ([{"index":, "status":, "phone_number":, "date":, "time":, "sms":},]) List of requested SMS (list of dictionaries)
+    return: ([{"index":, "status":, "phone_number":, "date":, "time":, "sms", "sms_encoded":},]) List of requested SMS (list of dictionaries)
             Explanation of dictionaries content:
               - index (int) Index of the SMS from the GSM module point of view
               - status (GSMTC35.eSMS) SMS type
               - phone_number (string) Phone number which send the SMS
               - date (string) Date SMS was received
               - time (string) Time SMS was received
-              - sms (string) Content of the SMS (encoded or decoded depending on decode_sms keyword and if PDU mode used/worked)
+              - sms (string) Content of the SMS (decoded, if PDU mode is not used or did not work then content may vary depending on device)
+              - sms_encoded (string) Content of the SMS (encoded in hexadecimal readable format. Data not given if PDU mode did not worked or is not used)
               If PDU mode worked, additional 'bonus' fields will be available:
               - phone_number_type (int) Phone number type using GSM 04.08 specification (145 <=> international, 129 <=> national)
               - service_center_type (int) Service center phone number type using GSM 04.08 specification (145 <=> international, 129 <=> national)
               - service_center_phone_number (string) Service center phone number
               - charset (string) Charset used by the sender to encode the SMS
+              If PDU mode worked and that the SMS has an header:
+              - sms_header (string) Header of the SMS (decoded)
+              - sms_header_encoded (string) Header of the SMS (encoded in hexadecimal readable format)
     """
     all_sms = []
 
@@ -2483,9 +2540,11 @@ def main():
           charset = sms["charset"]
         else:
           charset = "unknown"
-        print(str(sms["phone_number"])+" (id " +str(sms["index"])+", "
+        res = str(sms["phone_number"])+" (id " +str(sms["index"])+", " \
               +str(sms["status"])+", "+str(charset)+", "+str(sms["date"])+" "+str(sms["time"])
-              +"): "+str(sms["sms"]))
+        if "sms_header_encoded" in sms:
+          res = res + ", header " + str(sms["sms_header_encoded"])
+        print(res+"): "+str(sms["sms_encoded"]))
       sys.exit(0)
 
     elif o in ("-j", "--getTextModeSMS"):
