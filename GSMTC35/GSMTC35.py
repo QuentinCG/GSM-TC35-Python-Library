@@ -1575,7 +1575,7 @@ class GSMTC35:
 
 
   ############################### SMS FUNCTIONS ################################
-  def sendSMS(self, phone_number, msg, network_delay_sec=5):
+  def sendSMS(self, phone_number, msg, force_text_mode=False, network_delay_sec=5):
     """Send SMS (max 140 normal char or max 70 special char) to specific phone number
 
     Keyword arguments:
@@ -1587,7 +1587,11 @@ class GSMTC35:
     """
     result = False
 
-    if self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0"):
+    using_text_mode = force_text_mode
+    if not using_text_mode:
+      using_text_mode = not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0")
+
+    if not using_text_mode:
       use_7bit, encoded_message_length_and_data = GSMTC35.__pack7Bit(msg)
       if use_7bit:
         logging.debug("Message will be sent in 7bit mode (default GSM alphabet)")
@@ -1643,7 +1647,8 @@ class GSMTC35:
       if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.warning("Could not go back to text mode")
     else:
-      logging.warning("Could not go to PDU mode, trying to send message in normal mode, some character may be missing")
+      if using_text_mode and (not force_text_mode):
+        logging.warning("Could not go to PDU mode, trying to send message in normal mode, some character may be missing")
       result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS=\""
                                             +phone_number+"\"",
                                             after=msg+GSMTC35.__CTRL_Z,
@@ -2193,6 +2198,7 @@ def __help(func="", filename=__file__):
     filename -- (string, optional) File name of the python script implementing the commands
   """
   func = func.lower()
+  filename = "python " + str(filename)
 
   # Help
   if func in ("h", "help"):
@@ -2331,11 +2337,26 @@ def __help(func="", filename=__file__):
           +filename+" --sendSMS [phone number] [message]\r\n"
           +"\r\n"
           +"Example:\r\n"
-          +filename+" -s +33601234567 \"Hello!\"\r\n你好，你是？\"\r\n"
-          +filename+" --sendSMS 0601234567 \"Hello!\"\r\n你好，你是？\"\r\n")
+          +filename+" -s +33601234567 \"Hello!\r\nNew line!\"\r\n"
+          +filename+" --sendSMS 0601234567 \"Hello!\r\nNew line!\"\r\n")
     return
   elif func == "":
     print("SEND SMS (-s, --sendSMS): Send normal SMS (140 normal char or 70 special char)")
+
+  # Send text mode SMS (dependant of GSM)
+  if func in ("e", "sendtextmodesms"):
+    print("Send SMS using Text Mode TC35 encoding (NOT RECOMMENDED)\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -e [phone number] [message]\r\n"
+          +filename+" --sendTextModeSMS [phone number] [message]\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -e +33601234567 \"Hello!\r\nNew line!\"\r\n"
+          +filename+" --sendTextModeSMS 0601234567 \"Hello!\r\nNew line!\"\r\n")
+    return
+  elif func == "":
+    print("SEND SMS WITH TEXT MODE (-e, --sendTextModeSMS): Send SMS using Text Mode TC35 encoding (NOT RECOMMENDED)")
 
   # Get SMS
   if func in ("g", "getsms"):
@@ -2427,7 +2448,7 @@ def __help(func="", filename=__file__):
           +" - Call someone: "+filename+" --serialPort COM4 --pin 1234 --call +33601234567\r\n"
           +" - Hang up call: "+filename+" --serialPort COM4 --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
-          +" - Send basic or extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\"\r\néàçù!\"\r\n"
+          +" - Send basic or extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\r\nNew line :)\"\r\n"
           +" - Get all SMS (decoded): "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get all SMS (encoded): "+filename+" --serialPort COM4 --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
@@ -2451,10 +2472,10 @@ def main():
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hlactsdniogfjzb:u:p:",
+    opts, args = getopt.getopt(sys.argv[1:], "hlactsdeniogfjzb:u:p:",
                                ["baudrate=", "serialPort=", "pin=", "debug", "nodebug", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
-                                "pickUpCall", "sendSMS", "deleteSMS", "getSMS",
+                                "pickUpCall", "sendSMS", "sendTextModeSMS", "deleteSMS", "getSMS",
                                 "information", "getEncodedSMS", "getTextModeSMS"])
   except getopt.GetoptError as err:
     print("[ERROR] "+str(err))
@@ -2559,6 +2580,19 @@ def main():
       except AttributeError:
         pass
       print("SMS sent: "+str(gsm.sendSMS(str(args[0]), msg)))
+      sys.exit(0)
+
+    elif o in ("-e", "--sendTextModeSMS"):
+      if len(args) < 2:
+        print("[ERROR] You need to specify the phone number and the message")
+        sys.exit(1)
+      msg = args[1]
+      # Python2.7-3 compatibility:
+      try:
+        msg = args[1].encode().decode('utf-8')
+      except AttributeError:
+        pass
+      print("SMS sent using Text Mode: "+str(gsm.sendSMS(str(args[0]), msg, True)))
       sys.exit(0)
 
     elif o in ("-d", "--deleteSMS"):

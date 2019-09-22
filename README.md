@@ -61,34 +61,37 @@ Non-exhaustive list of shell commands:
 
 ```shell
 # Get help
-GSMTC35.py -h
+python GSMTC35.py --help
 
 # Send SMS (140 normal char or 70 unicode char)
-GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell! 你好，你是？"
+python GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell! 你好，你是？"
+
+# Send SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
+python GSMTC35.py --serialPort COM4 --pin 1234 --sendTextModeSMS +33601234567 "Hello from shell!"
 
 # Get SMS/MMS (decoded, in plain text)
-GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
+python GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
 
 # Get SMS/MMS (encoded, in hexadecimal, charset specified in response)
-GSMTC35.py --serialPort COM4 --pin 1234 --getEncodedSMS "ALL"
+python GSMTC35.py --serialPort COM4 --pin 1234 --getEncodedSMS "ALL"
 
 # Get SMS (decoded by TC35 using 'Text Mode', NOT RECOMMENDED)
-GSMTC35.py --serialPort COM4 --pin 1234 --getTextModeSMS "ALL"
+python GSMTC35.py --serialPort COM4 --pin 1234 --getTextModeSMS "ALL"
 
 # Delete SMS
-GSMTC35.py --serialPort COM4 --pin 1234 --deleteSMS "ALL"
+python GSMTC35.py --serialPort COM4 --pin 1234 --deleteSMS "ALL"
 
 # Call
-GSMTC35.py --serialPort COM4 --pin 1234 --call +33601234567
+python GSMTC35.py --serialPort COM4 --pin 1234 --call +33601234567
 
 # Hang up call
-GSMTC35.py --serialPort COM4 --pin 1234 --hangUpCall
+python GSMTC35.py --serialPort COM4 --pin 1234 --hangUpCall
 
 # Pick up call
-GSMTC35.py --serialPort COM4 --pin 1234 --pickUpCall
+python GSMTC35.py --serialPort COM4 --pin 1234 --pickUpCall
 
 # Show GSM module and network information
-GSMTC35.py --serialPort COM4 --pin 1234 --information
+python GSMTC35.py --serialPort COM4 --pin 1234 --information
 
 # Use "--debug" to show more information during command
 # Use "--nodebug" to not show any warning information during command
@@ -123,6 +126,9 @@ if not gsm.isAlive():
 
 # Send SMS (140 normal char or 70 unicode char)
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", u'Hello from python script!!! 你好，你是？')))
+
+# Send SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
+print("SMS Text Mode sent: "+str(gsm.sendSMS("+33601234567", 'Hello from python script!!!', True)))
 
 # Show all received SMS/MMS (decoded)
 rx_sms = gsm.getSMS(GSMTC35.eSMS.ALL_SMS)
