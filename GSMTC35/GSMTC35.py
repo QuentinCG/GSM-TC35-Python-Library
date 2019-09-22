@@ -1605,8 +1605,8 @@ class GSMTC35:
     Keyword arguments:
       phone_number -- (string) Phone number (can be local or international)
       msg -- (unicode) Message to send (max 140 normal char or max 70 special char)
-      force_text_mode -- (bool) Force to use Text Mode instead of PDU mode (NOT RECOMMENDED)
-      network_delay_sec -- (int) Network delay to add when waiting SMS to be send
+      force_text_mode -- (bool, default: PDU mode used) Force to use Text Mode instead of PDU mode (NOT RECOMMENDED)
+      network_delay_sec -- (int, default: 5sec) Network delay to add when waiting SMS to be sent
 
     return: (bool) SMS sent
     """
@@ -1647,19 +1647,32 @@ class GSMTC35:
       logging.debug("encoded_phone_number_length="+str(encoded_phone_number_length))
 
       # Create fully encoded message
-      smsc_length = "00"
-      smsc_content = ""
-      pdu_header_length = "01"
-      pdu_header_content = "00"
-      phone_number_type = "91" # International
-      pid = "00" # Protocol "Store and forwared SMS"
-      if use_7bit: # TP-DCS: "08" <=> UCS2, "00" <=> GSM 7 bit
-        encoding_type = "00"
+      # SCA (service center length (1 byte) + service center address information)
+      fully_encoded_message = "00"
+      # PDU Type
+      # - Bit 7: Reply Path (not used, should be 0)
+      # - Bit 6: UDHI (1 <=> UD contains header in addition to message)
+      # - Bit 5: SRR (Status report requested ?, should be 0)
+      # - Bit 4: VP field present? (should be 0)
+      # - Bit 3: VP field (0 <=> relative, 1 <=> absolute, should be 0)
+      # - Bit 2: RD (0 <=> Accept SMS-Submit with same SMSC, 1 <=> Reject, should be 0)
+      # - Bit 1&0: Message Type (should be "SMS-Submit" <=> "01")
+      fully_encoded_message += "01"
+      # MR (Message reference, must be random between 0 and 255, TODO: Make it random)
+      fully_encoded_message += "00"
+      # Destination Address
+      fully_encoded_message += encoded_phone_number_length
+      fully_encoded_message += "91" # Type of number (International)
+      fully_encoded_message += encoded_phone_number
+      # Protocol identifier
+      fully_encoded_message += "00" # Protocol Identifier (PID, Short Message <=> "00")
+      # Data Coding Scheme (DCS, "08" <=> UCS2, "00" <=> GSM 7 bit)
+      if use_7bit:
+        fully_encoded_message += "00"
       else:
-        encoding_type = "08"
-
-      fully_encoded_message = smsc_length + smsc_content + pdu_header_length + pdu_header_content + encoded_phone_number_length \
-                              + phone_number_type + encoded_phone_number + pid + encoding_type + encoded_message_length_and_data
+        fully_encoded_message += "08"
+      # User data length (UDL, 1 byte) + User data (UD)
+      fully_encoded_message += encoded_message_length_and_data
       fully_encoded_message = fully_encoded_message.upper()
       logging.debug("fully encoded message="+str(fully_encoded_message))
 
