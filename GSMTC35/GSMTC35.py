@@ -2605,16 +2605,21 @@ def __help(func="", filename=__file__):
 
   # Use case examples:
   if func == "":
+    example_port = "COMx"
+    for p in list(serial.tools.list_ports.comports()):
+      if p.device:
+        example_port = str(p.device)
+        break
     print("\r\n"
-          +"Some examples (if serial port is 'COM4' and sim card pin is '1234'):\r\n"
-          +" - Call someone: "+filename+" --serialPort COM4 --pin 1234 --call +33601234567\r\n"
-          +" - Hang up call: "+filename+" --serialPort COM4 --pin 1234 --hangUpCall\r\n"
-          +" - Pick up call: "+filename+" --serialPort COM4 --pin 1234 --pickUpCall\r\n"
-          +" - Send basic or extended SMS: "+filename+" --serialPort COM4 --pin 1234 --sendSMS +33601234567 \"Hello you!\r\nNew line :)\"\r\n"
-          +" - Get all SMS (decoded): "+filename+" --serialPort COM4 --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
-          +" - Get all SMS (encoded): "+filename+" --serialPort COM4 --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
-          +" - Delete all SMS: "+filename+" --serialPort COM4 --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
-          +" - Get information: "+filename+" --serialPort COM4 --pin 1234 --information"+"\"\r\n"
+          +"Some examples (if serial port is '"+example_port+"' and sim card pin is '1234'):\r\n"
+          +" - Call someone: "+filename+" --serialPort "+example_port+" --pin 1234 --call +33601234567\r\n"
+          +" - Hang up call: "+filename+" --serialPort "+example_port+" --pin 1234 --hangUpCall\r\n"
+          +" - Pick up call: "+filename+" --serialPort "+example_port+" --pin 1234 --pickUpCall\r\n"
+          +" - Send basic or extended SMS: "+filename+" --serialPort "+example_port+" --pin 1234 --sendSMS +33601234567 \"Hello you!\r\nNew line :)\"\r\n"
+          +" - Get all SMS (decoded): "+filename+" --serialPort "+example_port+" --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
+          +" - Get all SMS (encoded): "+filename+" --serialPort "+example_port+" --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
+          +" - Delete all SMS: "+filename+" --serialPort "+example_port+" --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
+          +" - Get information: "+filename+" --serialPort "+example_port+" --pin 1234 --information"+"\"\r\n"
           +" - You can have a lot more information on how commands are performed using '--debug' command"+"\"\r\n"
           +" - You can hide debug, warning and error information using '--nodebug' command")
 
