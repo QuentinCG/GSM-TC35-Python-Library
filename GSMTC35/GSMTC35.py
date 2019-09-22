@@ -789,22 +789,33 @@ class GSMTC35:
 
   @staticmethod
   def __packUCS2(bytes):
-    """Encode bytes into hexadecimal representation of extended encoding with length (UTF-16 / UCS2)
+    """Encode bytes into hexadecimal representation of extended encoded User Data with User Data Length (UTF-16 / UCS2)
 
     Keyword arguments:
       bytes -- (bytes) Content to encode
 
-    return: (bytes) Hexadecimal representation of extended encoding with length (UTF-16 / UCS2)
+    return: ([bytes]) List of Hexadecimal representation of extended encoded User Data with User Data Length (UTF-16 / UCS2)
     """
-    encoded_message = binascii.hexlify(bytes.encode('utf-16be')).decode()
-    if len(encoded_message) % 4 != 0:
-      encoded_message = str("00") + str(encoded_message)
+    # Check if message can be sent in one part or is multipart
+    if (len(bytes) > 70):
+      logging.debug("Encoding multipart message in UCS-2 (Utf-16)")
+      # Get all parts
+      n = 67 # 70 unicode char (140 bytes) - header length (5 bytes) => 67(.5) possible char per msg
+      all_msg_to_encode = [bytes[i:i+n] for i in range(0, len(bytes), n)]
+      # Encode data as multipart messages
+      #TODO
+      logging.error("MULTIPART MESSAGE NOT HANDLED YET FOR UCS2")
+      return []
+    else:
+      encoded_message = binascii.hexlify(bytes.encode('utf-16be')).decode()
+      if len(encoded_message) % 4 != 0:
+        encoded_message = str("00") + str(encoded_message)
 
-    encoded_message_length = format(int(2*((len(bytes)))), 'x')
-    if len(encoded_message_length) % 2 != 0:
-      encoded_message_length = "0" + encoded_message_length
+      encoded_message_length = format(int(2*((len(bytes)))), 'x')
+      if len(encoded_message_length) % 2 != 0:
+        encoded_message_length = "0" + encoded_message_length
 
-    return str(str(encoded_message_length) + str(encoded_message)).upper().replace("'", "")
+      return [str(str(encoded_message_length) + str(encoded_message)).upper().replace("'", "")]
 
   @staticmethod
   def __is7BitCompatible(plaintext):
@@ -833,14 +844,16 @@ class GSMTC35:
   def __pack7Bit(plaintext):
     """Encode bytes into hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8)
 
+    Function logic inspired from https://github.com/pmarti/python-messaging/blob/master/messaging/utils.py#L98
+
     Keyword arguments:
       plaintext -- (bytes) Content to encode
 
-    return: (bool, bytes) (Successfully encoded, Hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8))
+    return: (bool, [bytes]) (Successfully encoded, List of Hexadecimal representation of 7bit GSM encoded User Data with User Data Length (very basic UTF-8))
     """
     # Do not encode data if not 7bit compatible
     if not GSMTC35.__is7BitCompatible(plaintext):
-      return False, ""
+      return False, []
 
     encoded_message = ""
 
@@ -850,26 +863,38 @@ class GSMTC35:
     else:
       txt = plaintext
 
-    # Encode the data
-    tl = len(txt)
-    txt += '\x00'
-    msgl = int(len(txt) * 7 / 8)
-    op = [-1] * msgl
-    c = shift = 0
+    # Check if message can be sent in one part or is multipart
+    if (len(txt) > 140):
+      logging.debug("Encoding multipart message in 7bit")
+      # Get all parts
+      n = 135 # 140char (140 bytes) - header length (5 bytes) => 135 char
+      all_msg_to_encode = [txt[i:i+n] for i in range(0, len(txt), n)]
+      # Encode data as multipart messages
+      #TODO
+      logging.error("MULTIPART MESSAGE NOT HANDLED YET FOR 7BIT")
+      return False, []
+    else:
+      # Encode data as normal message
+      logging.debug("Encoding one SMS in 7bit")
+      tl = len(txt)
+      txt += '\x00'
+      msgl = int(len(txt) * 7 / 8)
+      op = [-1] * msgl
+      c = shift = 0
 
-    for n in range(msgl):
-        if shift == 6:
-            c += 1
+      for n in range(msgl):
+          if shift == 6:
+              c += 1
 
-        shift = n % 7
-        lb = ord(txt[c]) >> shift
-        hb = (ord(txt[c + 1]) << (7 - shift) & 255)
-        op[n] = lb + hb
-        c += 1
+          shift = n % 7
+          lb = ord(txt[c]) >> shift
+          hb = (ord(txt[c + 1]) << (7 - shift) & 255)
+          op[n] = lb + hb
+          c += 1
 
-    encoded_message = chr(tl) + ''.join(map(chr, op))
+      encoded_message = chr(tl) + ''.join(map(chr, op))
 
-    return True, str(''.join(["%02x" % ord(n) for n in encoded_message])).upper().replace("'", "")
+      return True, [str(''.join(["%02x" % ord(n) for n in encoded_message])).upper().replace("'", "")]
 
   @staticmethod
   def __decodePduSms(msg, decode_sms):
@@ -1601,7 +1626,10 @@ class GSMTC35:
 
   ############################### SMS FUNCTIONS ################################
   def sendSMS(self, phone_number, msg, force_text_mode=False, network_delay_sec=5):
-    """Send SMS (max 140 normal char or max 70 special char) to specific phone number
+    """Send SMS/MMS to specific phone number
+
+    Must be max 140 normal char or max 70 special char if you want to send it as a SMS
+    Else it will be sent as MMS
 
     Keyword arguments:
       phone_number -- (string) Phone number (can be local or international)
@@ -1618,15 +1646,19 @@ class GSMTC35:
       using_text_mode = not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=0")
 
     if not using_text_mode:
-      use_7bit, encoded_message_length_and_data = GSMTC35.__pack7Bit(msg)
+      use_7bit, all_encoded_user_data_and_length = GSMTC35.__pack7Bit(msg)
       if use_7bit:
         logging.debug("Message will be sent in 7bit mode (default GSM alphabet)")
       else:
         # Encode message into UCS-2 (UTF16)
         logging.debug("Message will be sent in UCS-2 mode (Utf16)")
-        encoded_message_length_and_data = GSMTC35.__packUCS2(msg)
+        all_encoded_user_data_and_length = GSMTC35.__packUCS2(msg)
 
-      logging.debug("encoded_message_length_and_data="+str(encoded_message_length_and_data))
+      if len(all_encoded_user_data_and_length) <= 0:
+        logging.error("Failed to encode SMS content")
+        return False
+
+      logging.debug("all_encoded_user_data_and_length:\n - "+str('\n - '.join(all_encoded_user_data_and_length)))
 
       # Encode phone number
       encoded_phone_number = ""
@@ -1649,7 +1681,7 @@ class GSMTC35:
 
       # Create fully encoded message
       # SCA (service center length (1 byte) + service center address information)
-      fully_encoded_message = "00"
+      base_encoded_message = "00"
       # PDU Type
       # - Bit 7: Reply Path (not used, should be 0)
       # - Bit 6: UDHI (1 <=> UD contains header in addition to message)
@@ -1658,30 +1690,37 @@ class GSMTC35:
       # - Bit 3: VP field (0 <=> relative, 1 <=> absolute, should be 0)
       # - Bit 2: RD (0 <=> Accept SMS-Submit with same SMSC, 1 <=> Reject, should be 0)
       # - Bit 1&0: Message Type (should be "SMS-Submit" <=> "01")
-      fully_encoded_message += "01"
+      if len(all_encoded_user_data_and_length) > 1:
+        base_encoded_message += "41"
+      else:
+        base_encoded_message += "01"
       # MR (Message reference, must be random between 0 and 255)
-      fully_encoded_message += '{:02X}'.format(randint(0, 255))
+      base_encoded_message += '{:02X}'.format(randint(0, 255))
       # Destination Address
-      fully_encoded_message += encoded_phone_number_length
-      fully_encoded_message += "91" # Type of number (International)
-      fully_encoded_message += encoded_phone_number
+      base_encoded_message += encoded_phone_number_length
+      base_encoded_message += "91" # Type of number (International)
+      base_encoded_message += encoded_phone_number
       # Protocol identifier
-      fully_encoded_message += "00" # Protocol Identifier (PID, Short Message <=> "00")
+      base_encoded_message += "00" # Protocol Identifier (PID, Short Message <=> "00")
       # Data Coding Scheme (DCS, "08" <=> UCS2, "00" <=> GSM 7 bit)
       if use_7bit:
-        fully_encoded_message += "00"
+        base_encoded_message += "00"
       else:
-        fully_encoded_message += "08"
-      # User data length (UDL, 1 byte) + User data (UD)
-      fully_encoded_message += encoded_message_length_and_data
-      fully_encoded_message = fully_encoded_message.upper()
-      logging.debug("fully encoded message="+str(fully_encoded_message))
+        base_encoded_message += "08"
 
-      # Send the SMS
-      result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS="
-                                            +str(int((len(fully_encoded_message)-1)/2)),
-                                            after=fully_encoded_message+GSMTC35.__CTRL_Z,
-                                            additional_timeout=network_delay_sec)
+      # User data length (UDL, 1 byte) + User data (UD)
+      result = True
+      for encoded_user_data_and_length in all_encoded_user_data_and_length:
+        fully_encoded_message = base_encoded_message + encoded_user_data_and_length
+        fully_encoded_message = fully_encoded_message.upper()
+        logging.debug("fully encoded message="+str(fully_encoded_message))
+
+        # Send the SMS or all multipart messages (MMS)
+        if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS=" \
+                                            +str(int((len(fully_encoded_message)-1)/2)), \
+                                            after=fully_encoded_message+GSMTC35.__CTRL_Z, \
+                                            additional_timeout=network_delay_sec):
+          result = False
 
       if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGF=1"):
         logging.warning("Could not go back to text mode")
