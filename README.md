@@ -63,11 +63,8 @@ Non-exhaustive list of shell commands:
 # Get help
 GSMTC35.py -h
 
-# Send SMS (140 normal char)
-GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell!"
-
-# Send SMS (70 unicode char)
-GSMTC35.py --serialPort COM4 --pin 1234 --sendSpecialSMS +33601234567 "你好，你是？"
+# Send SMS (140 normal char or 70 unicode char)
+GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell! 你好，你是？"
 
 # Get SMS/MMS (decoded, in plain text)
 GSMTC35.py --serialPort COM4 --pin 1234 --getSMS "ALL"
@@ -124,11 +121,8 @@ if not gsm.isAlive():
 #    print("Wrong PIN")
 #    sys.exit(2)
 
-# Send SMS (140 normal char)
-print("SMS sent: "+str(gsm.sendSMS("+33601234567", "Hello from python script!!!")))
-
-# Send SMS (70 unicode char)
-print("SMS sent: "+str(gsm.sendSmsWithSpecialChar("+33601234567", u'你好，你是？')))
+# Send SMS (140 normal char or 70 unicode char)
+print("SMS sent: "+str(gsm.sendSMS("+33601234567", u'Hello from python script!!! 你好，你是？')))
 
 # Show all received SMS/MMS (decoded)
 rx_sms = gsm.getSMS(GSMTC35.eSMS.ALL_SMS)
