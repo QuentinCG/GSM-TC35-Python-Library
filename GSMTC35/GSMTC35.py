@@ -800,7 +800,7 @@ class GSMTC35:
     if (len(bytes) > 70):
       logging.debug("Encoding multipart message in UCS-2 (Utf-16)")
       # Get all parts
-      n = 67 # 70 unicode char (140 bytes) - header length (5 bytes) => 67(.5) possible char per msg
+      n = 67 # 70 unicode char (140 bytes) - header length (6 bytes) => 67 possible char per msg
       all_msg_to_encode = [bytes[i:i+n] for i in range(0, len(bytes), n)]
       # Encode data as multipart messages
       #TODO
@@ -841,13 +841,40 @@ class GSMTC35:
     return True
 
   @staticmethod
-  def __pack7Bit(plaintext):
+  def __generateMultipartUDH(user_data_id, current_part, nb_of_parts):
+    """Generate User Data Header for multipart message purpose
+
+    Keyword arguments:
+      user_data_id -- (int[0:255]) ID of the multipart message
+      current_part -- (int) Current part of the multipart message
+      nb_of_parts -- (int) Number of parts of the full multipart message
+
+    return: (string) User Data Header
+    """
+    # UDHL (User Data Header Length, not including UDHL byte)
+    result = "\x05"
+    # Information element identifier (not used)
+    result += "\x00"
+    # Header Length, not including this byte
+    result += "\x03"
+    # User Data ID (reference)
+    result += chr(user_data_id)
+    # Number of parts
+    result += chr(nb_of_parts)
+    # Current part
+    result += chr(current_part)
+
+    return result
+
+  @staticmethod
+  def __pack7Bit(plaintext, user_data_id=0):
     """Encode bytes into hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8)
 
     Function logic inspired from https://github.com/pmarti/python-messaging/blob/master/messaging/utils.py#L98
 
     Keyword arguments:
       plaintext -- (bytes) Content to encode
+      user_data_id -- (int[1:255] or 0 for random, optional, default: random) ID of the potential multipart message
 
     return: (bool, [bytes]) (Successfully encoded, List of Hexadecimal representation of 7bit GSM encoded User Data with User Data Length (very basic UTF-8))
     """
@@ -866,13 +893,42 @@ class GSMTC35:
     # Check if message can be sent in one part or is multipart
     if (len(txt) > 140):
       logging.debug("Encoding multipart message in 7bit")
-      # Get all parts
-      n = 135 # 140char (140 bytes) - header length (5 bytes) => 135 char
+      # Get all parts that needs to be encoded
+      n = 138 # Max number of 7 bit chars in multipart message (excepting header)
       all_msg_to_encode = [txt[i:i+n] for i in range(0, len(txt), n)]
+      logging.debug("Messages to encode:\n - "+'\n - '.join(all_msg_to_encode))
+      all_encoded_msg = []
+      nb_of_parts = len(all_msg_to_encode)
+      # Have same user data ID for all message parts
+      if user_data_id == 0:
+        user_data_id = randint(0, 255)
       # Encode data as multipart messages
-      #TODO
-      logging.error("MULTIPART MESSAGE NOT HANDLED YET FOR 7BIT")
-      return False, []
+      for current_id in range(nb_of_parts):
+        txt = "\x00\x00\x00\x00\x00\x00" + "\x00"+ all_msg_to_encode[current_id]
+        tl = len(txt)
+        txt += '\x00'
+        msgl = int(len(txt) * 7 / 8)
+        op = [-1] * msgl
+        c = shift = 0
+
+        for n in range(msgl):
+          if shift == 6:
+            c += 1
+
+          shift = n % 7
+          lb = ord(txt[c]) >> shift
+          hb = (ord(txt[c + 1]) << (7 - shift) & 255)
+          op[n] = lb + hb
+          c += 1
+
+        for i, char in enumerate(GSMTC35.__generateMultipartUDH(user_data_id, current_id+1, nb_of_parts)):
+          op[i] = ord(char)
+
+        encoded_message = chr(tl) + ''.join(map(chr, op))
+
+        all_encoded_msg.append(str(''.join(["%02x" % ord(n) for n in encoded_message])).upper().replace("'", ""))
+
+      return True, all_encoded_msg
     else:
       # Encode data as normal message
       logging.debug("Encoding one SMS in 7bit")
@@ -883,14 +939,14 @@ class GSMTC35:
       c = shift = 0
 
       for n in range(msgl):
-          if shift == 6:
-              c += 1
-
-          shift = n % 7
-          lb = ord(txt[c]) >> shift
-          hb = (ord(txt[c + 1]) << (7 - shift) & 255)
-          op[n] = lb + hb
+        if shift == 6:
           c += 1
+
+        shift = n % 7
+        lb = ord(txt[c]) >> shift
+        hb = (ord(txt[c + 1]) << (7 - shift) & 255)
+        op[n] = lb + hb
+        c += 1
 
       encoded_message = chr(tl) + ''.join(map(chr, op))
 
@@ -1710,10 +1766,17 @@ class GSMTC35:
 
       # User data length (UDL, 1 byte) + User data (UD)
       result = True
+      count = 0
       for encoded_user_data_and_length in all_encoded_user_data_and_length:
         fully_encoded_message = base_encoded_message + encoded_user_data_and_length
         fully_encoded_message = fully_encoded_message.upper()
         logging.debug("fully encoded message="+str(fully_encoded_message))
+
+        # Wait a bit every time a part of the message is sent
+        if (len(all_encoded_user_data_and_length) > 1) and (count > 0):
+          logging.debug("Wait a bit before send next message part")
+          time.sleep(network_delay_sec)
+        count += 1
 
         # Send the SMS or all multipart messages (MMS)
         if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS=" \
