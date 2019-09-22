@@ -48,6 +48,7 @@ import logging
 import datetime
 from math import ceil
 import sys
+from random import randint
 
 class GSMTC35:
   """GSM TC35 class
@@ -1658,8 +1659,8 @@ class GSMTC35:
       # - Bit 2: RD (0 <=> Accept SMS-Submit with same SMSC, 1 <=> Reject, should be 0)
       # - Bit 1&0: Message Type (should be "SMS-Submit" <=> "01")
       fully_encoded_message += "01"
-      # MR (Message reference, must be random between 0 and 255, TODO: Make it random)
-      fully_encoded_message += "00"
+      # MR (Message reference, must be random between 0 and 255)
+      fully_encoded_message += '{:02X}'.format(randint(0, 255))
       # Destination Address
       fully_encoded_message += encoded_phone_number_length
       fully_encoded_message += "91" # Type of number (International)
