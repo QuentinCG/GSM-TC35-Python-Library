@@ -333,7 +333,10 @@ class GSMTC35:
           line = line[:len(line)-leneol]
           break
       else:
-        logging.warning("Received data without eol: \""+str(line)+"\"")
+        if str(line).startswith(">"):
+          logging.debug("Reading line while GSM is waiting content")
+        else:
+          logging.warning("Received data without eol: \""+str(line)+"\"")
         break
     logging.debug("[IN] "+str(line))
     return line
