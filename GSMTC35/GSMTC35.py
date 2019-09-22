@@ -803,16 +803,14 @@ class GSMTC35:
     return str(str(encoded_message_length) + str(encoded_message)).upper().replace("'", "")
 
   @staticmethod
-  def __pack7Bit(plaintext):
+  def __is7BitCompatible(plaintext):
     """Encode bytes into hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8)
 
     Keyword arguments:
-      plaintext -- (bytes) Content to encode
+      plaintext -- (bytes) Content to check if can be encoded into 7bit
 
-    return: (bool, bytes) (Successfully encoded, Hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8))
+    return: (bool) Data can be encoded into 7Bit
     """
-    encoded_message = ""
-
     # Be sure that message is a string
     if sys.version_info >= (3,):
       txt = plaintext.encode().decode('latin1')
@@ -823,7 +821,30 @@ class GSMTC35:
     compatibility_7bit = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
     for c in str(txt):
       if not (c in compatibility_7bit):
-        return False, ""
+        return False
+
+    return True
+
+  @staticmethod
+  def __pack7Bit(plaintext):
+    """Encode bytes into hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8)
+
+    Keyword arguments:
+      plaintext -- (bytes) Content to encode
+
+    return: (bool, bytes) (Successfully encoded, Hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8))
+    """
+    # Do not encode data if not 7bit compatible
+    if not GSMTC35.__is7BitCompatible(plaintext):
+      return False, ""
+
+    encoded_message = ""
+
+    # Be sure that message is a string
+    if sys.version_info >= (3,):
+      txt = plaintext.encode().decode('latin1')
+    else:
+      txt = plaintext
 
     # Encode the data
     tl = len(txt)
@@ -1581,6 +1602,7 @@ class GSMTC35:
     Keyword arguments:
       phone_number -- (string) Phone number (can be local or international)
       msg -- (unicode) Message to send (max 140 normal char or max 70 special char)
+      force_text_mode -- (bool) Force to use Text Mode instead of PDU mode (NOT RECOMMENDED)
       network_delay_sec -- (int) Network delay to add when waiting SMS to be send
 
     return: (bool) SMS sent
@@ -1649,10 +1671,31 @@ class GSMTC35:
     else:
       if using_text_mode and (not force_text_mode):
         logging.warning("Could not go to PDU mode, trying to send message in normal mode, some character may be missing")
-      result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS=\""
-                                            +phone_number+"\"",
-                                            after=msg+GSMTC35.__CTRL_Z,
-                                            additional_timeout=network_delay_sec)
+
+      msg_length = len(msg)
+      # Check if must be sent in multiple SMS or not (separate SMS since Text mode can't handle multipart SMS)
+      n = 140
+      if msg_length > 70:
+        if GSMTC35.__is7BitCompatible(msg):
+          if msg_length > 140:
+            logging.warning("Message must be sent in multiple <=140 char SMS (not multipart SMS because Text Mode is used)")
+          else:
+            logging.debug("SMS can be sent in one basic part")
+        else:
+          logging.warning("Message must be sent in multiple <=70 char SMS (not multipart SMS because Text Mode is used)")
+          n = 70
+      else:
+        logging.debug("SMS can be sent in one unicode part")
+
+      # Sending all SMS
+      all_sms_to_send = [msg[i:i+n] for i in range(0, len(msg), n)]
+      result = True
+      for sms_to_send in all_sms_to_send:
+        if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS=\"" \
+                                            +phone_number+"\"", \
+                                            after=sms_to_send+GSMTC35.__CTRL_Z, \
+                                            additional_timeout=network_delay_sec):
+          result = False
 
     return result
 

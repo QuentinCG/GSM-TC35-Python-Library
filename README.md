@@ -66,7 +66,7 @@ python GSMTC35.py --help
 # Send SMS (140 normal char or 70 unicode char)
 python GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell! 你好，你是？"
 
-# Send SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
+# Send (multiple) SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
 python GSMTC35.py --serialPort COM4 --pin 1234 --sendTextModeSMS +33601234567 "Hello from shell!"
 
 # Get SMS/MMS (decoded, in plain text)
@@ -127,7 +127,7 @@ if not gsm.isAlive():
 # Send SMS (140 normal char or 70 unicode char)
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", u'Hello from python script!!! 你好，你是？')))
 
-# Send SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
+# Send (multiple) SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
 print("SMS Text Mode sent: "+str(gsm.sendSMS("+33601234567", 'Hello from python script!!!', True)))
 
 # Show all received SMS/MMS (decoded)
