@@ -68,6 +68,13 @@ class GSMTC35:
   __CTRL_Z = "\x1a"
   __DATE_FORMAT = "%y/%m/%d,%H:%M:%S"
 
+  class eRequiredPin:
+    READY = "READY"
+    PIN   = "SIM PIN"
+    PUK   = "SIM PUK"
+    PIN2  = "SIM PIN2"
+    PUK2  = "SIM PUK2"
+
   class eSMS:
     UNREAD_SMS = "REC UNREAD"
     READ_SMS = "REC READ"
@@ -152,7 +159,7 @@ class GSMTC35:
 
   ############################ STANDALONE FUNCTIONS ############################
   @staticmethod
-  def changeBaudrateMode(old_baudrate, new_baudrate, port, pin=-1,
+  def changeBaudrateMode(old_baudrate, new_baudrate, port, pin="", puk="", pin2="", puk2="",
                          parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                          bytesize=serial.EIGHTBITS):
     """Change baudrate mode (can be done only if GSM module is not currently used)
@@ -163,6 +170,9 @@ class GSMTC35:
                             /!\ Use "0" to let the GSM module use "auto-baudrate" mode
       port -- (string) Serial port name of the GSM serial connection
       pin -- (string, optional) PIN number if locked
+      puk -- (string, optional) PUK number if locked
+      pin2 -- (string, optional) PIN2 number if locked
+      puk2 -- (string, optional) PUK2 number if locked
       parity -- (pySerial parity, optional) Serial connection parity (PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE)
       stopbits -- (pySerial stop bits, optional) Serial connection stop bits (STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO)
       bytesize -- (pySerial byte size, optional) Serial connection byte size (FIVEBITS, SIXBITS, SEVENBITS, EIGHTBITS)
@@ -170,7 +180,8 @@ class GSMTC35:
     return: (bool) Baudrate changed
     """
     gsm = GSMTC35()
-    if not gsm.setup(_port=port, _pin=pin, _baudrate=old_baudrate, _parity=parity,
+    if not gsm.setup(_port=port, _pin=pin, _puk=puk, _pin2=pin2, _puk2=puk2,
+                     _baudrate=old_baudrate, _parity=parity,
                      _stopbits=stopbits, _bytesize=bytesize):
       logging.error("Impossible to initialize the GSM module")
       return False
@@ -190,7 +201,8 @@ class GSMTC35:
 
 
   ################################### SETUP ####################################
-  def setup(self, _port, _pin=-1, _baudrate=115200, _parity=serial.PARITY_NONE,
+  def setup(self, _port, _pin="", _puk="", _pin2="", _puk2="",
+            _baudrate=115200, _parity=serial.PARITY_NONE,
             _stopbits=serial.STOPBITS_ONE, _bytesize=serial.EIGHTBITS,
             _timeout_sec=2):
     """Initialize the class (can be launched multiple time if setup changed or module crashed)
@@ -199,6 +211,9 @@ class GSMTC35:
       _port -- (string) Serial port name of the GSM serial connection
       _baudrate -- (int, optional) Baudrate of the GSM serial connection
       _pin -- (string, optional) PIN number if locked (not needed to do it now but would improve reliability)
+      _puk -- (string, optional) PUK number if locked (not needed to do it now but would improve reliability)
+      _pin2 -- (string, optional) PIN2 number if locked (not needed to do it now but would improve reliability)
+      _puk2 -- (string, optional) PUK2 number if locked (not needed to do it now but would improve reliability)
       _parity -- (pySerial parity, optional) Serial connection parity (PARITY_NONE, PARITY_EVEN, PARITY_ODD PARITY_MARK, PARITY_SPACE)
       _stopbits -- (pySerial stop bits, optional) Serial connection stop bits (STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO)
       _bytesize -- (pySerial byte size, optional) Serial connection byte size (FIVEBITS, SIXBITS, SEVENBITS, EIGHTBITS)
@@ -241,14 +256,58 @@ class GSMTC35:
       if not self.__sendCmdAndCheckResult(GSMTC35.__NORMAL_AT+"CMEE=0"):
         logging.warning("Can't set proper error format returned by GSM module (CMEE command)")
 
-      # Try to enter PIN if needed (May be needed for next commands):
-      if self.isPinRequired():
-        if int(_pin) >= 0:
-          if not self.enterPin(_pin):
-            logging.error("Invalid PIN \""+str(_pin)+"\" (YOU HAVE A MAXIMUM OF 3 TRY)")
-            is_init = False
-        else:
-          logging.warning("Some initialization may not work without PIN activated")
+      # Enter PIN/PUK/PIN2/PUK2 as long as it is required (and that all goes well)
+      # If PIN/PUK/PIN2/PUK2 in not specified but is needed, a warning will be displayed
+      # but the function will continue.
+      pin_status = ""
+      while is_init and (pin_status != GSMTC35.eRequiredPin.READY):
+        req_pin_result, pin_status = self.getPinStatus()
+        if (not req_pin_result) or (len(pin_status) <=0):
+          logging.error("Failed to get PIN status")
+          is_init = False
+        elif pin_status == GSMTC35.eRequiredPin.READY:
+          logging.debug("No PIN needed")
+          break
+        elif pin_status == GSMTC35.eRequiredPin.PIN:
+          if len(_pin) > 0:
+            if not self.enterPin(_pin):
+              logging.error("Invalid PIN \""+str(_pin)+"\" (YOU HAVE A MAXIMUM OF 3 TRY)")
+              is_init = False
+            else:
+              logging.debug("PIN entered with success")
+          else:
+            logging.warning("Some initialization may not work without PIN activated")
+            break
+        elif pin_status == GSMTC35.eRequiredPin.PUK:
+          if len(_puk) > 0:
+            if not self.enterPin(_puk):
+              logging.error("Invalid PUK \""+str(_puk)+"\"")
+              is_init = False
+            else:
+              logging.debug("PUK entered with success")
+          else:
+            logging.warning("Some initialization may not work without PUK activated")
+            break
+        elif pin_status == GSMTC35.eRequiredPin.PIN2:
+          if len(_pin2) > 0:
+            if not self.enterPin(_pin2):
+              logging.error("Invalid PIN2 \""+str(_pin2)+"\" (YOU HAVE A MAXIMUM OF 3 TRY)")
+              is_init = False
+            else:
+              logging.debug("PIN2 entered with success")
+          else:
+            logging.warning("Some initialization may not work without PIN2 activated")
+            break
+        elif pin_status == GSMTC35.eRequiredPin.PUK2:
+          if len(_puk2) > 0:
+            if not self.enterPin(_puk2):
+              logging.error("Invalid PUK2 \""+str(_puk2)+"\"")
+              is_init = False
+            else:
+              logging.debug("PUK2 entered with success")
+          else:
+            logging.warning("Some initialization may not work without PUK2 activated")
+            break
 
       #Disable asynchronous triggers (SMS, calls, temperature)
       self.__disableAsynchronousTriggers()
@@ -2198,18 +2257,34 @@ class GSMTC35:
 
 
   ################################ PIN FUNCTIONS ###############################
-  def isPinRequired(self):
+  def getPinStatus(self):
     """Check if the SIM card PIN is ready (PUK may also be needed)
 
-    return: (bool) is SIM card PIN still needed to access phone functions
+    return: (bool, GSMTC35.eRequiredPin) (Did request worked?, Required PIN ("READY" if none needed)
     """
-    pin_required = not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CPIN?",
-                                                    result="READY")
+    res = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CPIN?")
 
-    # Delete last "OK" from buffer
-    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+    if len(res) <= 0:
+      return False, ""
 
-    return pin_required
+    base_cpin="+CPIN: "
+    res = ','.join(res)
+    if str(base_cpin+GSMTC35.eRequiredPin.READY) in res:
+      required_pin = GSMTC35.eRequiredPin.READY
+    elif str(base_cpin+GSMTC35.eRequiredPin.PIN) in res:
+      required_pin = GSMTC35.eRequiredPin.PIN
+    elif str(base_cpin+GSMTC35.eRequiredPin.PUK) in res:
+      required_pin = GSMTC35.eRequiredPin.PUK
+    elif str(base_cpin+GSMTC35.eRequiredPin.PIN2) in res:
+      required_pin = GSMTC35.eRequiredPin.PIN2
+    elif str(base_cpin+GSMTC35.eRequiredPin.PUK2) in res:
+      required_pin = GSMTC35.eRequiredPin.PUK2
+    else:
+      logging.warning("Failed to understand if PIN(2)/PUK(2) are needed.")
+      return False, ""
+
+    logging.debug("Found PIN status: "+str(required_pin))
+    return True, required_pin
 
 
   def enterPin(self, pin):
@@ -2437,7 +2512,7 @@ def __help(func="", filename=__file__):
           +filename+" --baudrate 115200 \r\n")
     return
   elif func == "":
-    print("BAUDRATE (-b, --baudrate): Specify serial baudrate for GSM module <-> master communication")
+    print("BAUDRATE (-b, --baudrate): Specify serial baudrate for GSM module <-> master communication (Optional)")
 
   # Serial Port
   if func in ("u", "serialport"):
@@ -2453,7 +2528,7 @@ def __help(func="", filename=__file__):
           +filename+" --serialPort /dev/ttyS3 \r\n")
     return
   elif func == "":
-    print("SERIAL PORT (-u, --serialPort): Specify serial port for GSM module <-> master communication")
+    print("SERIAL PORT (-u, --serialPort): Specify serial port for GSM module <-> master communication (Optional)")
 
   # PIN
   if func in ("p", "pin"):
@@ -2469,7 +2544,55 @@ def __help(func="", filename=__file__):
           +filename+" --pin 0000 \r\n")
     return
   elif func == "":
-    print("PIN (-p, --pin): Specify SIM card PIN")
+    print("PIN (-p, --pin): Specify SIM card PIN (Optional)")
+
+  # PUK
+  if func in ("y", "puk"):
+    print("Specify SIM card PUK\r\n"
+          +"Default value (if not called): No PUK for SIM card\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -y [puk number]\r\n"
+          +filename+" --puk [puk number]\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -y 12345678\r\n"
+          +filename+" --puk 12345678 \r\n")
+    return
+  elif func == "":
+    print("PUK (-y, --puk): Specify SIM card PUK (Optional)")
+
+  # PIN2
+  if func in ("x", "pin2"):
+    print("Specify SIM card PIN2\r\n"
+          +"Default value (if not called): No PIN2 for SIM card\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -x [pin2 number]\r\n"
+          +filename+" --pin2 [pin2 number]\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -x 1234\r\n"
+          +filename+" --pin2 0000 \r\n")
+    return
+  elif func == "":
+    print("PIN2 (-x, --pin2): Specify SIM card PIN2 (Optional)")
+
+  # PUK2
+  if func in ("v", "puk2"):
+    print("Specify SIM card PUK2\r\n"
+          +"Default value (if not called): No PUK2 for SIM card\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -v [puk2 number]\r\n"
+          +filename+" --puk2 [puk2 number]\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -v 1234\r\n"
+          +filename+" --puk2 0000 \r\n")
+    return
+  elif func == "":
+    print("PUK2 (-v, --puk2): Specify SIM card PUK2 (Optional)")
 
   # Is alive
   if func in ("a", "isalive"):
@@ -2696,12 +2819,15 @@ def main():
 
   baudrate = 115200
   serial_port = ""
-  pin = -1
+  pin = ""
+  puk = ""
+  pin2 = ""
+  puk2 = ""
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hlactsdemniogfjzb:u:p:",
-                               ["baudrate=", "serialPort=", "pin=", "debug", "nodebug", "help",
+    opts, args = getopt.getopt(sys.argv[1:], "hlactsdemniogfjzb:u:p:y:x:v:",
+                               ["baudrate=", "serialPort=", "pin=", "puk=", "pin2=", "puk2=", "debug", "nodebug", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
                                 "pickUpCall", "sendSMS", "sendEncodedSMS", "sendTextModeSMS", "deleteSMS", "getSMS",
                                 "information", "getEncodedSMS", "getTextModeSMS"])
@@ -2740,6 +2866,18 @@ def main():
       print("PIN: "+a)
       pin = a
       continue
+    if o in ("-y", "--puk"):
+      print("PUK: "+a)
+      puk = a
+      continue
+    if o in ("-x", "--pin2"):
+      print("PIN2: "+a)
+      pin2 = a
+      continue
+    if o in ("-v", "--puk2"):
+      print("PUK2: "+a)
+      puk2 = a
+      continue
 
   if serial_port == "":
     for p in list(serial.tools.list_ports.comports()):
@@ -2754,7 +2892,7 @@ def main():
 
   # Initialize GSM
   gsm = GSMTC35()
-  is_init = gsm.setup(_port=serial_port, _baudrate=baudrate, _pin=pin)
+  is_init = gsm.setup(_port=serial_port, _baudrate=baudrate, _pin=pin, _puk=puk, _pin2=pin2, _puk2=puk2)
   print("GSM init with serial port {} and baudrate {}: {}".format(serial_port, baudrate, is_init))
   if (not is_init):
     print("[ERROR] You must configure the serial port (and the baudrate), use '-h' to get more information.")
@@ -2764,12 +2902,16 @@ def main():
       print("[HELP] "+str(p))
     sys.exit(2)
 
-  # Be sure PIN is initialized
-  if gsm.isPinRequired():
-    print("[ERROR] PIN is needed")
+  # Be sure PIN(2)/PUK(2) are not needed
+  req_pin_status, required_pin = gsm.getPinStatus()
+  if not(req_pin_status) or (required_pin != GSMTC35.eRequiredPin.READY):
+    if len(required_pin) > 0:
+      print("[ERROR] "+str(required_pin)+" is needed")
+    else:
+      print("[ERROR] Failed to check PIN status")
     sys.exit(2)
   else:
-    print("PIN is not needed")
+    print("PIN and PUK not needed")
 
   # Launch requested command
   for o, a in opts:

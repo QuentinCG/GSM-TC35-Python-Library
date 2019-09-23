@@ -14,8 +14,8 @@ Most functionalities should work with other GSM module using AT commands.
 ## Functionalities
 
 Non-exhaustive list of GSMTC35 class functionalities:
-  - Check PIN state
-  - Enter/Lock/Unlock/Change PIN
+  - Check/Enter PIN/PUK
+  - Lock/Unlock/Change PIN
   - Send/Receive/Delete SMS/MMS
   - Call/Re-call (possible to hide phone number)
   - Hang-up/Pick-up call
@@ -114,21 +114,18 @@ from GSMTC35 import GSMTC35
 
 gsm = GSMTC35()
 pin = 1234
+puk = 12345678
+pin2 = 4321
+puk2 = 87654321
 
-# Mandatory step
-if not gsm.setup(_port="COM3", _pin=pin):
+# Mandatory step (PIN/PUK/PIN2/PUK2 will be entered if required, not needed to specify them)
+if not gsm.setup(_port="COM3", _pin=pin, _puk=puk, _pin2=pin2, _puk2=puk2):
   print("Setup error")
   sys.exit(2)
 
 if not gsm.isAlive():
   print("The GSM module is not responding...")
   sys.exit(2)
-
-# Enter PIN (already specified in setup())
-#if gsm.isPinRequired():
-#  if not gsm.enterPin(pin):
-#    print("Wrong PIN")
-#    sys.exit(2)
 
 # Send SMS or MMS (if > 140 normal char or > 70 unicode char)
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", u'Hello from python script!!! 你好，你是？')))
