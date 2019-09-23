@@ -66,6 +66,9 @@ python GSMTC35.py --help
 # Send SMS or MMS (if > 140 normal char or > 70 unicode char)
 python GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell! 你好，你是？"
 
+# Send SMS/MMS (encoded, in hexadecimal / UTF-8)
+python GSMTC35.py --serialPort COM4 --pin 1234 --sendEncodedSMS +33601234567 48656C6C6F2066726F6D207368656C6C2120E4BDA0E5A5BDEFBC8CE4BDA0E698AFEFBC9F
+
 # Send (multiple) SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
 python GSMTC35.py --serialPort COM4 --pin 1234 --sendTextModeSMS +33601234567 "Hello from shell!"
 

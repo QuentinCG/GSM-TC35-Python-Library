@@ -2544,7 +2544,22 @@ def __help(func="", filename=__file__):
           +filename+" --sendSMS 0601234567 \"Hello!\r\nNew line!\"\r\n")
     return
   elif func == "":
-    print("SEND SMS (-s, --sendSMS): Send SMS or MMS")
+    print("SEND SMS OR MMS (-s, --sendSMS): Send SMS or MMS")
+
+  # Send encoded SMS/MMS
+  if func in ("m", "sendencodedsms"):
+    print("Send encoded SMS or MMS\r\n"
+          +"\r\n"
+          +"Usage:\r\n"
+          +filename+" -m [phone number] [message in hexa]\r\n"
+          +filename+" --sendEncodedSMS [phone number] [message in hexa]\r\n"
+          +"\r\n"
+          +"Example:\r\n"
+          +filename+" -m +33601234567 48656C6C6F21\r\n"
+          +filename+" --sendEncodedSMS 0601234567 48656C6C6F21\r\n")
+    return
+  elif func == "":
+    print("SEND ENCODED SMS OR MMS (-m, --sendEncodedSMS): Send encoded SMS or MMS")
 
   # Send text mode SMS (dependant of GSM)
   if func in ("e", "sendtextmodesms"):
@@ -2657,6 +2672,7 @@ def __help(func="", filename=__file__):
           +" - Hang up call: "+filename+" --serialPort "+example_port+" --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort "+example_port+" --pin 1234 --pickUpCall\r\n"
           +" - Send SMS/MMS: "+filename+" --serialPort "+example_port+" --pin 1234 --sendSMS +33601234567 \"Hello you!\r\nNew line :)\"\r\n"
+          +" - Send encoded SMS/MMS: "+filename+" --serialPort "+example_port+" --pin 1234 --sendEncodedSMS +33601234567 48656C6C6F21\r\n"
           +" - Get all SMS (decoded): "+filename+" --serialPort "+example_port+" --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get all SMS (encoded): "+filename+" --serialPort "+example_port+" --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort "+example_port+" --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
@@ -2680,10 +2696,10 @@ def main():
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hlactsdeniogfjzb:u:p:",
+    opts, args = getopt.getopt(sys.argv[1:], "hlactsdemniogfjzb:u:p:",
                                ["baudrate=", "serialPort=", "pin=", "debug", "nodebug", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
-                                "pickUpCall", "sendSMS", "sendTextModeSMS", "deleteSMS", "getSMS",
+                                "pickUpCall", "sendSMS", "sendEncodedSMS", "sendTextModeSMS", "deleteSMS", "getSMS",
                                 "information", "getEncodedSMS", "getTextModeSMS"])
   except getopt.GetoptError as err:
     print("[ERROR] "+str(err))
@@ -2805,6 +2821,18 @@ def main():
       except AttributeError:
         pass
       print("SMS sent: "+str(gsm.sendSMS(str(args[0]), msg)))
+      sys.exit(0)
+
+    elif o in ("-m", "--sendEncodedSMS"):
+      if len(args) < 2:
+        print("[ERROR] You need to specify the phone number and the message")
+        sys.exit(1)
+      try:
+        decoded_content = bytearray.fromhex(args[1]).decode('utf-8')
+      except AttributeError:
+        print("[ERROR] Failed to decode (in UTF-8) your hexadecimal encoded message")
+        sys.exit(1)
+      print("SMS encoded sent: "+str(gsm.sendSMS(str(args[0]), decoded_content)))
       sys.exit(0)
 
     elif o in ("-e", "--sendTextModeSMS"):
