@@ -49,11 +49,9 @@ Non-exhaustive list of shell commands:
 
 ## How to install (python script and shell)
 
-  - Install Pyserial:
-    * Solution 1: "pip install pyserial"
-    * Solution 2: Download package at https://pypi.python.org/pypi/pyserial and use "python setup.py install" command)
+  - Install package calling `python setup.py install` from the root of this repository
   - Connect your GSM module to a serial port
-  - Get the port name (you can find it out by calling GSMTC35.py without arguments)
+  - Get the port name (you can find it out by calling `python GSMTC35/GSMTC35.py --help` from the root of this repository)
   - Load your shell or python script
 
 
