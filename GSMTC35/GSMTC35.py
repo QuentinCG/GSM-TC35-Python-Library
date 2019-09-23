@@ -2443,12 +2443,13 @@ def __help(func="", filename=__file__):
     print("Call a phone number\r\n"
           +"\r\n"
           +"Usage:\r\n"
-          +filename+" -c [phone number] [pick-up wait in sec (default: no wait)]\r\n"
-          +filename+" --call [phone number] [pick-up wait in sec (default: no wait)]\r\n"
+          +filename+" -c [phone number] [Hide phone number? True/False (default: False)] [pick-up wait in sec (default: 20sec)]\r\n"
+          +filename+" --call [phone number] [Hide phone number? True/False (default: False)] [pick-up wait in sec (default: 20sec)]\r\n"
           +"\r\n"
           +"Example:\r\n"
           +filename+" -c +33601234567\r\n"
-          +filename+" --call 0601234567 20\r\n"
+          +filename+" --call 0601234567 True\r\n"
+          +filename+" --call 0601234567 False 30\r\n"
           +"\r\n"
           +"Note:\r\n"
           +" - The call may still be active after this call\r\n"
@@ -2722,8 +2723,19 @@ def main():
     elif o in ("-c", "--call"):
       if len(args) > 0:
         if args[0] != "":
-          print("Calling "+args[0]+"...")
-          result = gsm.call(args[0])
+          hidden = False
+          if len(args) > 1:
+            if (args[1].lower() == "true") or args[1] == "1":
+              hidden = True
+          if hidden:
+            print("Calling "+args[0]+" in invisible mode...")
+          else:
+            print("Calling "+args[0]+" in normal mode...")
+
+          if len(args) > 2:
+            result = gsm.call(args[0], hidden, int(args[2]))
+          else:
+            result = gsm.call(args[0], hidden)
           print("Call picked up: "+str(result))
           if result:
             sys.exit(0)

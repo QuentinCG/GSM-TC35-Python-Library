@@ -84,6 +84,9 @@ python GSMTC35.py --serialPort COM4 --pin 1234 --deleteSMS "ALL"
 # Call
 python GSMTC35.py --serialPort COM4 --pin 1234 --call +33601234567
 
+# Call in hidden mode
+python GSMTC35.py --serialPort COM4 --pin 1234 --call +33601234567 True
+
 # Hang up call
 python GSMTC35.py --serialPort COM4 --pin 1234 --hangUpCall
 
