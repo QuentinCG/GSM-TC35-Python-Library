@@ -16,7 +16,7 @@ Most functionalities should work with other GSM module using AT commands.
 Non-exhaustive list of GSMTC35 class functionalities:
   - Check PIN state
   - Enter/Lock/Unlock/Change PIN
-  - Send/Receive/Delete SMS
+  - Send/Receive/Delete SMS/MMS
   - Call/Re-call (possible to hide phone number)
   - Hang-up/Pick-up call
   - Get/Add/Delete phonebook entries (phone numbers + contact names)
@@ -41,7 +41,7 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Change the baudrate mode
 
 Non-exhaustive list of shell commands:
-  - Send/Receive/Delete SMS
+  - Send/Receive/Delete SMS/MMS
   - Call
   - Hang-up/Pick-up call
   - Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock, call status and associated phone number, operator list, neighbour cells, accumulated call meter (max), temperature status, sleep mode status)
@@ -63,7 +63,7 @@ Non-exhaustive list of shell commands:
 # Get help
 python GSMTC35.py --help
 
-# Send SMS (140 normal char or 70 unicode char)
+# Send SMS or MMS (if > 140 normal char or > 70 unicode char)
 python GSMTC35.py --serialPort COM4 --pin 1234 --sendSMS +33601234567 "Hello from shell! 你好，你是？"
 
 # Send (multiple) SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
@@ -127,7 +127,7 @@ if not gsm.isAlive():
 #    print("Wrong PIN")
 #    sys.exit(2)
 
-# Send SMS (140 normal char or 70 unicode char)
+# Send SMS or MMS (if > 140 normal char or > 70 unicode char)
 print("SMS sent: "+str(gsm.sendSMS("+33601234567", u'Hello from python script!!! 你好，你是？')))
 
 # Send (multiple) SMS (encoded by TC35 using 'Text Mode', NOT RECOMMENDED)
