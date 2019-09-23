@@ -846,17 +846,21 @@ class GSMTC35:
 
     return: (bool) Data can be encoded into 7Bit
     """
-    # Be sure that message is a string
-    if sys.version_info >= (3,):
-      txt = plaintext.encode().decode('latin1')
-    else:
-      txt = plaintext
+    try:
+      # Be sure that message is a string
+      if sys.version_info >= (3,):
+        txt = plaintext.encode().decode('latin1')
+      else:
+        txt = plaintext
 
-    # Do not encode data if not 7bit compatible
-    compatibility_7bit = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
-    for c in str(txt):
-      if not (c in compatibility_7bit):
-        return False
+      # Do not encode data if not 7bit compatible
+      compatibility_7bit = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
+      for c in str(txt):
+        if not (c in compatibility_7bit):
+          return False
+    except (UnicodeEncodeError, UnicodeDecodeError):
+      logging.debug("Unicode detected so data not 7bit compatible")
+      return False
 
     return True
 
