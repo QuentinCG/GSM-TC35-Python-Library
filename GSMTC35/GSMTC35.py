@@ -817,7 +817,7 @@ class GSMTC35:
 
         encoded_message = GSMTC35.__generateMultipartUDH(user_data_id, current_id+1, nb_of_parts, True) + encoded_message
 
-        encoded_message_length = format(ceil(len(encoded_message)/2), 'x')
+        encoded_message_length = format(int(ceil(len(encoded_message)/2)), 'x')
         if len(encoded_message_length) % 2 != 0:
           encoded_message_length = "0" + encoded_message_length
 
@@ -2818,7 +2818,7 @@ def main():
       # Python2.7-3 compatibility:
       try:
         msg = args[1].encode().decode('utf-8')
-      except AttributeError:
+      except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
         pass
       print("SMS sent: "+str(gsm.sendSMS(str(args[0]), msg)))
       sys.exit(0)
@@ -2829,7 +2829,7 @@ def main():
         sys.exit(1)
       try:
         decoded_content = bytearray.fromhex(args[1]).decode('utf-8')
-      except AttributeError:
+      except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
         print("[ERROR] Failed to decode (in UTF-8) your hexadecimal encoded message")
         sys.exit(1)
       print("SMS encoded sent: "+str(gsm.sendSMS(str(args[0]), decoded_content)))
