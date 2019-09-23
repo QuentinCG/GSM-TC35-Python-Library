@@ -214,7 +214,8 @@ class GSMTC35:
 
     # Create new GSM session
     self.__timeout_sec = _timeout_sec
-    self.__serial = serial.Serial(
+    try:
+      self.__serial = serial.Serial(
                       port=_port,
                       baudrate=_baudrate,
                       parity=_parity,
@@ -222,6 +223,9 @@ class GSMTC35:
                       bytesize=_bytesize,
                       timeout=_timeout_sec
                     )
+    except serial.serialutil.SerialException:
+      logging.error("Invalid serial port '"+str(_port)+"'")
+      return False
 
     # Initialize the GSM module with specific commands
     is_init = True
