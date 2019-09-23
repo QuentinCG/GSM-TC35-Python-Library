@@ -2681,9 +2681,15 @@ def main():
       continue
 
   if serial_port == "":
-    print("You need to specify the serial port...\r\n")
-    __help()
-    sys.exit(1)
+    for p in list(serial.tools.list_ports.comports()):
+      if p.device:
+        serial_port = str(p.device)
+        logging.warning("Using first found serial port ("+serial_port+"), specify serial port if this one is not working...")
+        break
+    if serial_port == "":
+      print("No specified serial port (and none found)...\r\n")
+      __help()
+      sys.exit(1)
 
   # Initialize GSM
   gsm = GSMTC35()
