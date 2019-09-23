@@ -788,11 +788,12 @@ class GSMTC35:
     return bytes.decode('utf-16be')
 
   @staticmethod
-  def __packUCS2(bytes):
+  def __packUCS2(bytes, user_data_id=0):
     """Encode bytes into hexadecimal representation of extended encoded User Data with User Data Length (UTF-16 / UCS2)
 
     Keyword arguments:
       bytes -- (bytes) Content to encode
+      user_data_id -- (int[1:255] or 0 for random, optional, default: random) ID of the potential multipart message
 
     return: ([bytes]) List of Hexadecimal representation of extended encoded User Data with User Data Length (UTF-16 / UCS2)
     """
@@ -800,12 +801,31 @@ class GSMTC35:
     if (len(bytes) > 70):
       logging.debug("Encoding multipart message in UCS-2 (Utf-16)")
       # Get all parts
-      n = 67 # 70 unicode char (140 bytes) - header length (6 bytes) => 67 possible char per msg
+      n = 67 # Max number of unicode char in multipart message (excepting header)
       all_msg_to_encode = [bytes[i:i+n] for i in range(0, len(bytes), n)]
+      logging.debug("Messages to encode:\n - "+'\n - '.join(all_msg_to_encode))
+      all_encoded_msg = []
+      nb_of_parts = len(all_msg_to_encode)
+      # Have same user data ID for all message parts
+      if user_data_id == 0:
+        user_data_id = randint(0, 255)
       # Encode data as multipart messages
-      #TODO
-      logging.error("MULTIPART MESSAGE NOT HANDLED YET FOR UCS2")
-      return []
+      for current_id in range(nb_of_parts):
+        encoded_message = binascii.hexlify(all_msg_to_encode[current_id].encode('utf-16be')).decode()
+        if len(encoded_message) % 4 != 0:
+          encoded_message = str("00") + str(encoded_message)
+
+        encoded_message = GSMTC35.__generateMultipartUDH(user_data_id, current_id+1, nb_of_parts, True) + encoded_message
+
+        encoded_message_length = format(ceil(len(encoded_message)/2), 'x')
+        if len(encoded_message_length) % 2 != 0:
+          encoded_message_length = "0" + encoded_message_length
+
+        encoded_message = str(str(encoded_message_length) + str(encoded_message)).upper().replace("'", "")
+
+        all_encoded_msg.append(encoded_message)
+
+      return all_encoded_msg
     else:
       encoded_message = binascii.hexlify(bytes.encode('utf-16be')).decode()
       if len(encoded_message) % 4 != 0:
@@ -841,28 +861,43 @@ class GSMTC35:
     return True
 
   @staticmethod
-  def __generateMultipartUDH(user_data_id, current_part, nb_of_parts):
+  def __generateMultipartUDH(user_data_id, current_part, nb_of_parts, string_mode=False):
     """Generate User Data Header for multipart message purpose
 
     Keyword arguments:
       user_data_id -- (int[0:255]) ID of the multipart message
       current_part -- (int) Current part of the multipart message
       nb_of_parts -- (int) Number of parts of the full multipart message
+      string_mode -- (bool) Returning the UDH as string or as unicode?
 
     return: (string) User Data Header
     """
-    # UDHL (User Data Header Length, not including UDHL byte)
-    result = "\x05"
-    # Information element identifier (not used)
-    result += "\x00"
-    # Header Length, not including this byte
-    result += "\x03"
-    # User Data ID (reference)
-    result += chr(user_data_id)
-    # Number of parts
-    result += chr(nb_of_parts)
-    # Current part
-    result += chr(current_part)
+    if string_mode:
+      # UDHL (User Data Header Length, not including UDHL byte)
+      result = "05"
+      # Information element identifier (not used)
+      result += "00"
+      # Header Length, not including this byte
+      result += "03"
+      # User Data ID (reference)
+      result += '{:02X}'.format(user_data_id)
+      # Number of parts
+      result += '{:02X}'.format(nb_of_parts)
+      # Current part
+      result += '{:02X}'.format(current_part)
+    else:
+      # UDHL (User Data Header Length, not including UDHL byte)
+      result = "\x05"
+      # Information element identifier (not used)
+      result += "\x00"
+      # Header Length, not including this byte
+      result += "\x03"
+      # User Data ID (reference)
+      result += chr(user_data_id)
+      # Number of parts
+      result += chr(nb_of_parts)
+      # Current part
+      result += chr(current_part)
 
     return result
 
@@ -1779,8 +1814,9 @@ class GSMTC35:
         count += 1
 
         # Send the SMS or all multipart messages (MMS)
+        # AT+CMGS=SIZE with SIZE = message size - service center length and content (1 byte)
         if not self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CMGS=" \
-                                            +str(int((len(fully_encoded_message)-1)/2)), \
+                                            +str(int((len(fully_encoded_message)-2)/2)), \
                                             after=fully_encoded_message+GSMTC35.__CTRL_Z, \
                                             additional_timeout=network_delay_sec):
           result = False
@@ -2491,9 +2527,9 @@ def __help(func="", filename=__file__):
   elif func == "":
     print("PICK UP CALL (-n, --pickUpCall): Pick up (answer) call")
 
-  # Send normal/special SMS (140 normal char or 70 special char)
+  # Send normal/special SMS/MMS
   if func in ("s", "sendsms"):
-    print("Send normal SMS (140 normal char or 70 special char)\r\n"
+    print("Send SMS or MMS\r\n"
           +"\r\n"
           +"Usage:\r\n"
           +filename+" -s [phone number] [message]\r\n"
@@ -2504,7 +2540,7 @@ def __help(func="", filename=__file__):
           +filename+" --sendSMS 0601234567 \"Hello!\r\nNew line!\"\r\n")
     return
   elif func == "":
-    print("SEND SMS (-s, --sendSMS): Send normal SMS (140 normal char or 70 special char)")
+    print("SEND SMS (-s, --sendSMS): Send SMS or MMS")
 
   # Send text mode SMS (dependant of GSM)
   if func in ("e", "sendtextmodesms"):
@@ -2616,7 +2652,7 @@ def __help(func="", filename=__file__):
           +" - Call someone: "+filename+" --serialPort "+example_port+" --pin 1234 --call +33601234567\r\n"
           +" - Hang up call: "+filename+" --serialPort "+example_port+" --pin 1234 --hangUpCall\r\n"
           +" - Pick up call: "+filename+" --serialPort "+example_port+" --pin 1234 --pickUpCall\r\n"
-          +" - Send basic or extended SMS: "+filename+" --serialPort "+example_port+" --pin 1234 --sendSMS +33601234567 \"Hello you!\r\nNew line :)\"\r\n"
+          +" - Send SMS/MMS: "+filename+" --serialPort "+example_port+" --pin 1234 --sendSMS +33601234567 \"Hello you!\r\nNew line :)\"\r\n"
           +" - Get all SMS (decoded): "+filename+" --serialPort "+example_port+" --pin 1234 --getSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Get all SMS (encoded): "+filename+" --serialPort "+example_port+" --pin 1234 --getEncodedSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
           +" - Delete all SMS: "+filename+" --serialPort "+example_port+" --pin 1234 --deleteSMS \""+str(GSMTC35.eSMS.ALL_SMS)+"\"\r\n"
