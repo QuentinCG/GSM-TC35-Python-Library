@@ -37,7 +37,7 @@ __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
 __copyright__ = "Copyright Quentin Comte-Gaz (2019)"
-__python_version__ = "2.7+ and 3.+"
+__python_version__ = "3.+"
 __version__ = "1.4 (2019/09/23)"
 __status__ = "Usable for any project"
 
@@ -787,8 +787,66 @@ class GSMTC35:
 
     return all_disable
 
+  __gsm0338_base_table = (u"@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà")
+  __gsm0338_extra_table = (u"````````````````````^```````````````````{}`````\\````````````[~]`|````````````````````````````````````€``````````````````````````")
+
   @staticmethod
-  def __unpack7bit(bytes, hl=0):
+  def __gsm0338Encode(plaintext):
+    res = ""
+    for c in plaintext:
+      idx = GSMTC35.__gsm0338_base_table.find(c)
+      if idx != -1:
+        res += chr(int(idx))
+        continue
+      idx = GSMTC35.__gsm0338_extra_table.find(c)
+      if idx != -1:
+        res += chr(27) + chr(int(idx))
+    return res
+
+  @staticmethod
+  def __gsm0338Decode(text):
+    result = []
+    normal_table = True
+    for i in text:
+      if int(i) == 27:
+        normal_table = False
+      else:
+        if normal_table:
+          result += GSMTC35.__gsm0338_base_table[int(i)]
+        else:
+          result += GSMTC35.__gsm0338_extra_table[int(i)]
+        normal_table = True
+
+    return "".join(result)
+
+  @staticmethod
+  def __is7BitCompatible(plaintext):
+    """Check that the data can be encoded in GSM03.38 (extra table included)
+
+    Keyword arguments:
+      plaintext -- (bytes) Content to check if can be encoded into 7bit
+
+    return: (bool) Data can be encoded into 7Bit
+    """
+    try:
+      # Be sure that message is a string
+      if sys.version_info >= (3,):
+        txt = plaintext.encode().decode('latin1')
+      else:
+        txt = plaintext
+
+      # Do not encode data if not 7bit compatible
+      for c in str(txt):
+        if (c == '`') or ((not (c in GSMTC35.__gsm0338_base_table)) and (not (c in GSMTC35.__gsm0338_extra_table))):
+          return False
+    except (UnicodeEncodeError, UnicodeDecodeError):
+      logging.debug("Unicode detected so data not 7bit compatible")
+      return False
+
+    return True
+
+  @staticmethod
+  def __unpack7bit(bytes, header_length=0, message_length=0):
     """Decode byte with Default Alphabet encoding ('7bit')
 
     Function logic inspired from https://github.com/pmarti/python-messaging/blob/master/messaging/utils.py#L173
@@ -823,7 +881,9 @@ class GSMTC35:
         count = (count + 1) % 7
 
       result = ''.join(map(unichr, result))
-      return result
+
+      # Convert GSM 7bit encodage (GSM03.38) into normal string
+      return GSMTC35.__gsm0338Decode(result[:message_length].encode())
     except ValueError:
       return ''
 
@@ -901,33 +961,6 @@ class GSMTC35:
       return [str(str(encoded_message_length) + str(encoded_message)).upper().replace("'", "")]
 
   @staticmethod
-  def __is7BitCompatible(plaintext):
-    """Encode bytes into hexadecimal representation of 7bit GSM encoding with length (very basic UTF-8)
-
-    Keyword arguments:
-      plaintext -- (bytes) Content to check if can be encoded into 7bit
-
-    return: (bool) Data can be encoded into 7Bit
-    """
-    try:
-      # Be sure that message is a string
-      if sys.version_info >= (3,):
-        txt = plaintext.encode().decode('latin1')
-      else:
-        txt = plaintext
-
-      # Do not encode data if not 7bit compatible
-      compatibility_7bit = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
-      for c in str(txt):
-        if not (c in compatibility_7bit):
-          return False
-    except (UnicodeEncodeError, UnicodeDecodeError):
-      logging.debug("Unicode detected so data not 7bit compatible")
-      return False
-
-    return True
-
-  @staticmethod
   def __generateMultipartUDH(user_data_id, current_part, nb_of_parts, string_mode=False):
     """Generate User Data Header for multipart message purpose
 
@@ -991,6 +1024,9 @@ class GSMTC35:
       txt = plaintext.encode().decode('latin1')
     else:
       txt = plaintext
+
+    # Encode string in GSM 03.38 encoding
+    txt = GSMTC35.__gsm0338Encode(plaintext)
 
     # Check if message can be sent in one part or is multipart
     if (len(txt) > 140):
@@ -1217,7 +1253,7 @@ class GSMTC35:
     user_data = ""
     logging.debug("Encoded "+str(charset)+" SMS content: "+str(msg))
     if charset == '7bit':  # Default Alphabet aka basic 7 bit coding - 03.38 S6.2.1
-      user_data = GSMTC35.__unpack7bit(msg, headerLength)
+      user_data = GSMTC35.__unpack7bit(msg, headerLength, messageLength)
       # Remove header (+ header size byte) from the message
       if contentContainsHeader:
         user_data = user_data[headerLength+1:]
@@ -1241,6 +1277,7 @@ class GSMTC35:
 
     result["sms"] = user_data
     logging.debug("Decoded SMS content: "+user_data)
+    user_data_encoded = user_data_encoded.upper()
     result["sms_encoded"] = user_data_encoded
     logging.debug("Re-encoded SMS content: "+user_data_encoded)
 

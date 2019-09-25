@@ -3,7 +3,7 @@
 ## What is it?
 
 This python library is designed to be integrated in python or shell projects using TC35 module.
-It is multi-platform and compatible with python 2.7+ and 3+.
+It is multi-platform and compatible with python 3+.
 
 Most functionalities should work with other GSM module using AT commands.
 
