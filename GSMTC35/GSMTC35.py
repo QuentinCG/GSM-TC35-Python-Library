@@ -787,8 +787,8 @@ class GSMTC35:
 
     return all_disable
 
-  __gsm0338_base_table = (u"@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà")
-  __gsm0338_extra_table = (u"````````````````````^```````````````````{}`````\\````````````[~]`|````````````````````````````````````€``````````````````````````")
+  __gsm0338_base_table = u"@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
+  __gsm0338_extra_table = u"````````````````````^```````````````````{}`````\\````````````[~]`|````````````````````````````````````€``````````````````````````"
 
   @staticmethod
   def __gsm0338Encode(plaintext):
@@ -829,14 +829,8 @@ class GSMTC35:
     return: (bool) Data can be encoded into 7Bit
     """
     try:
-      # Be sure that message is a string
-      if sys.version_info >= (3,):
-        txt = plaintext.encode().decode('latin1')
-      else:
-        txt = plaintext
-
       # Do not encode data if not 7bit compatible
-      for c in str(txt):
+      for c in str(plaintext):
         if (c == '`') or ((not (c in GSMTC35.__gsm0338_base_table)) and (not (c in GSMTC35.__gsm0338_extra_table))):
           return False
     except (UnicodeEncodeError, UnicodeDecodeError):
