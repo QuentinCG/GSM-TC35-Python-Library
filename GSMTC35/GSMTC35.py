@@ -142,6 +142,25 @@ class GSMTC35:
     INCOMING = 4
     WAITING = 5
 
+  @staticmethod
+  def eCallToString(data):
+    if data == GSMTC35.eCall.NOCALL:
+      return "NOCALL"
+    elif data == GSMTC35.eCall.ACTIVE:
+      return "ACTIVE"
+    elif data == GSMTC35.eCall.HELD:
+      return "HELD"
+    elif data == GSMTC35.eCall.DIALING:
+      return "DIALING"
+    elif data == GSMTC35.eCall.ALERTING:
+      return "ALERTING"
+    elif data == GSMTC35.eCall.INCOMING:
+      return "INCOMING"
+    elif data == GSMTC35.eCall.WAITING:
+      return "WAITING"
+
+    return "UNDEFINED"
+
   class ePhonebookType:
     CURRENT = "" # Phonebook in use
     SIM = "SM" # Main phonebook on SIM card
@@ -327,6 +346,9 @@ class GSMTC35:
 
     return self.__initialized
 
+  def isInitialized(self):
+    """Check if GSM class is initialized"""
+    return self.__initialized
 
   def close(self):
     """Close GSM session (free the GSM serial port)"""
