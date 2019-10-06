@@ -2120,7 +2120,7 @@ class GSMTC35:
     """Delete multiple or one SMS
 
     Keyword arguments:
-      sms_type -- (string or int, optional) Type of SMS to delete (possible values:
+      sms_type -- (string or int, optional) Type or index of SMS to delete (possible values:
                     index of the SMS to delete (integer), GSMTC35.eSMS.ALL_SMS,
                     GSMTC35.eSMS.UNREAD_SMS or GSMTC35.eSMS.READ_SMS)
 
