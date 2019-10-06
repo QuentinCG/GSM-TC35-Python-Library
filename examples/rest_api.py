@@ -5,9 +5,12 @@
   REST API to use the GSM module (in progress):
    - Are GSM module and PIN ready to work? (GET http://127.0.0.1:8080/api/ping)
    - Check call status (GET http://127.0.0.1:8080/api/call)
-   - Call (POST http://127.0.0.1:8080/api/call with header data 'phone_number' and 'hide_phone_number')
+   - Call (POST http://127.0.0.1:8080/api/call with header data 'phone_number' and optional 'hide_phone_number')
    - Hang up call (DELETE http://127.0.0.1:8080/api/call)
    - Pick up call (PUT http://127.0.0.1:8080/api/call)
+   - Send SMS/MMS (POST http://127.0.0.1:8080/api/sms with header data 'phone_number', 'content' and optional 'is_content_in_hexa_format')
+   - Get module date (GET http://127.0.0.1:8080/api/date)
+   - Set module date to current date (POST http://127.0.0.1:8080/api/date)
    - More to come soon...
 
   Requirement:
@@ -80,7 +83,7 @@ def verify(username, password):
 
   return BASIC_AUTH_DATA.get(username) == password
 
-# ---- Base GSM getter function ----
+# ---- Base functions ----
 def getGSM():
   """Base function to get initialized GSM class
 
@@ -98,6 +101,13 @@ def getGSM():
 
   return True, gsm, str("")
 
+def checkBoolean(value):
+  """Return a bool from a string (or bool)"""
+  if type(value) == bool:
+    return value
+  return str(value).lower() == "true" or str(value) == "1"
+
+# ---- API class ----
 class Ping(Resource):
   """Are GSM module and PIN ready to work?"""
   @auth.login_required
@@ -112,6 +122,41 @@ class Ping(Resource):
     valid_gsm, gsm, error = getGSM()
     if valid_gsm:
       return {"result": True, "status": gsm.isAlive()}
+    else:
+      return {"result": False, "error": error}
+
+class Date(Resource):
+  """Get module internal date/Set module internal date to current date"""
+  @auth.login_required
+  def get(self):
+    """Get module date as '%m/%d/%Y %H:%M:%S format' (GET)
+
+    return (json):
+      - (bool) 'result': Request worked?
+      - (str) 'date': Module date
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      gsm_date = gsm.getDateFromInternalClock()
+      if gsm_date != -1:
+        return {"result": True, "date": gsm_date.strftime("%m/%d/%Y %H:%M:%S")}
+      else:
+        return {"result": False, "error": "Module failed to send date in time."}
+    else:
+      return {"result": False, "error": error}
+  @auth.login_required
+  def post(self):
+    """Set module date to current computer date (POST)
+
+    return (json):
+      - (bool) 'result': Request sent?
+      - (bool) 'status': Module date updated?
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      return {"result": True, "status": gsm.setInternalClockToCurrentDate()}
     else:
       return {"result": False, "error": error}
 
@@ -152,7 +197,7 @@ class Call(Resource):
     if _phone_number == None:
       return {"result": False, "error": "Please specify a phone number (phone_number)"}
     _hide_phone_number = request.headers.get('hide_phone_number', default = "false", type = str)
-    _hide_phone_number = _hide_phone_number.lower() == "true" or _hide_phone_number == "1"
+    _hide_phone_number = checkBoolean(_hide_phone_number)
     valid_gsm, gsm, error = getGSM()
     if valid_gsm:
       return {"result": True, "status": gsm.call(phone_number=_phone_number, hide_phone_number=_hide_phone_number)}
@@ -210,7 +255,7 @@ class Sms(Resource):
     if _content == None:
       return {"result": False, "error": "Please specify a SMS content (content)"}
     _is_in_hexa_format = request.headers.get('is_content_in_hexa_format', default = "false", type = str)
-    _is_in_hexa_format = _is_in_hexa_format.lower() == "true" or _is_in_hexa_format == "1"
+    _is_in_hexa_format = checkBoolean(_is_in_hexa_format)
     valid_gsm, gsm, error = getGSM()
     if valid_gsm:
       if _is_in_hexa_format:
@@ -225,6 +270,7 @@ class Sms(Resource):
 api.add_resource(Call, '/call')
 api.add_resource(Ping, '/ping')
 api.add_resource(Sms, '/sms')
+api.add_resource(Date, '/date')
 
 
 # ---- Launch application ----
