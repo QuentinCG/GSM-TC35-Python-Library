@@ -8,7 +8,9 @@
    - Call (POST http://127.0.0.1:8080/api/call with header data 'phone_number' and optional 'hide_phone_number')
    - Hang up call (DELETE http://127.0.0.1:8080/api/call)
    - Pick up call (PUT http://127.0.0.1:8080/api/call)
+   - Get SMS/MMS (GET http://127.0.0.1:8080/api/sms with optional header data 'type')
    - Send SMS/MMS (POST http://127.0.0.1:8080/api/sms with header data 'phone_number', 'content' and optional 'is_content_in_hexa_format')
+   - Delete SMS/MMS (DELETE http://127.0.0.1:8080/api/sms with optional header data 'type_or_index')
    - Get module date (GET http://127.0.0.1:8080/api/date)
    - Set module date to current date (POST http://127.0.0.1:8080/api/date)
    - More to come soon...
@@ -17,7 +19,8 @@
    - Install (pip install) 'flask', 'flask_restful' and 'flask-httpauth'
 
   TODO:
-   - Add more API: SMS/MMS/Phonebook/Info/Reboot/...
+   - Get config as file parameters (using 'getopt') instead of hardcoded in file
+   - Add more API: Phonebook/Info/Reboot/...
    - Use HTTPS: https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
    - Use better authentification (basic-auth is not optimized, token based auth would be more secured): https://blog.miguelgrinberg.com/post/restful-authentication-with-flask
    - Have possibility to chose between authentification type (no auth, basic auth, token-based auth)
@@ -235,6 +238,24 @@ class Call(Resource):
 class Sms(Resource):
   """Send SMS/Get SMS/Delete SMS"""
   @auth.login_required
+  def get(self):
+    """Get SMS (GET)
+
+    Header should contain:
+      - (str, optional, default: "ALL") 'type': Type of SMS to get ("ALL", "REC UNREAD", "REC READ")
+
+    return (json):
+      - (bool) 'result': Request worked?
+      - (list of sms) 'sms': List of all found SMS
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    _sms_type = request.headers.get('type', default = GSMTC35.GSMTC35.eSMS.ALL_SMS, type = str)
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      return {"result": True, "sms": gsm.getSMS(sms_type=_sms_type)}
+    else:
+      return {"result": False, "error": error}
+  @auth.login_required
   def post(self):
     """Send SMS (POST)
 
@@ -264,6 +285,24 @@ class Sms(Resource):
         except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
           return {"result": False, "error": "Failed to decode content"}
       return {"result": True, "status": gsm.sendSMS(_phone_number, _content)}
+    else:
+      return {"result": False, "error": error}
+  @auth.login_required
+  def delete(self):
+    """Delete SMS (DELETE)
+
+    Header should contain:
+      - (str or int, optional, default: "ALL") 'type_or_index': Type or index of SMS to delete ("ALL", "REC UNREAD", "REC READ" or index as integer)
+
+    return (json):
+      - (bool) 'result': Request worked?
+      - (bool) 'status': SMS deleted
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    type_or_index = request.headers.get('type_or_index', default = GSMTC35.GSMTC35.eSMS.ALL_SMS, type = str)
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      return {"result": True, "status": gsm.deleteSMS(sms_type=type_or_index)}
     else:
       return {"result": False, "error": error}
 
