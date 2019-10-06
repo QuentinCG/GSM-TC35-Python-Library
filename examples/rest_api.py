@@ -3,6 +3,7 @@
 
 """
   REST API to use the GSM module (in progress):
+   - Are GSM module and PIN ready to work? (GET http://127.0.0.1:8080/api/ping)
    - Check call status (GET http://127.0.0.1:8080/api/call)
    - Call (POST http://127.0.0.1:8080/api/call with header data 'phone_number' and 'hide_phone_number')
    - Hang up call (DELETE http://127.0.0.1:8080/api/call)
@@ -97,6 +98,23 @@ def getGSM():
 
   return True, gsm, str("")
 
+class Ping(Resource):
+  """Are GSM module and PIN ready to work?"""
+  @auth.login_required
+  def get(self):
+    """Are GSM module and PIN ready to work? (GET)
+
+    return (json):
+      - (bool) 'result': Request worked?
+      - (str) 'status': Are GSM module and PIN ready to work?
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      return {"result": True, "status": gsm.isAlive()}
+    else:
+      return {"result": False, "error": error}
+
 class Call(Resource):
   """Call/Get call status/Pick up call/Hang up call"""
   @auth.login_required
@@ -170,6 +188,7 @@ class Call(Resource):
       return {"result": False, "error": error}
 
 api.add_resource(Call, '/call')
+api.add_resource(Ping, '/ping')
 
 
 # ---- Launch application ----
