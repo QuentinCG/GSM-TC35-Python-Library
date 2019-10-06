@@ -149,9 +149,9 @@ class Call(Resource):
       - (str, optional) 'error': Error explanation if request failed
     """
     _phone_number = request.headers.get('phone_number', default = None, type = str)
+    if _phone_number == None:
+      return {"result": False, "error": "Please specify a phone number (phone_number)"}
     _hide_phone_number = request.headers.get('hide_phone_number', default = "false", type = str)
-    if _hide_phone_number == None:
-      return {"result": False, "error": "Please specify your phone number (phone_number)"}
     _hide_phone_number = _hide_phone_number.lower() == "true" or _hide_phone_number == "1"
     valid_gsm, gsm, error = getGSM()
     if valid_gsm:
@@ -187,8 +187,44 @@ class Call(Resource):
     else:
       return {"result": False, "error": error}
 
+class Sms(Resource):
+  """Send SMS/Get SMS/Delete SMS"""
+  @auth.login_required
+  def post(self):
+    """Send SMS (POST)
+
+    Header should contain:
+      - (str) 'phone_number': Phone number to send the SMS
+      - (str) 'content': Content of the SMS (in utf-8 or hexa depending on other parameters)
+      - (bool, optional, default: False) 'is_content_in_hexa_format': Is content in hexadecimal format?
+
+    return (json):
+      - (bool) 'result': Request worked?
+      - (bool) 'status': SMS sent?
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    _phone_number = request.headers.get('phone_number', default = None, type = str)
+    if _phone_number == None:
+      return {"result": False, "error": "Please specify a phone number (phone_number)"}
+    _content = request.headers.get('content', default = None, type = str)
+    if _content == None:
+      return {"result": False, "error": "Please specify a SMS content (content)"}
+    _is_in_hexa_format = request.headers.get('is_content_in_hexa_format', default = "false", type = str)
+    _is_in_hexa_format = _is_in_hexa_format.lower() == "true" or _is_in_hexa_format == "1"
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      if _is_in_hexa_format:
+        try:
+          _content = bytearray.fromhex(_content).decode('utf-8')
+        except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
+          return {"result": False, "error": "Failed to decode content"}
+      return {"result": True, "status": gsm.sendSMS(_phone_number, _content)}
+    else:
+      return {"result": False, "error": error}
+
 api.add_resource(Call, '/call')
 api.add_resource(Ping, '/ping')
+api.add_resource(Sms, '/sms')
 
 
 # ---- Launch application ----
