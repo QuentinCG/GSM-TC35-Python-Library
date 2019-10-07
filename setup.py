@@ -1,10 +1,14 @@
 from setuptools import setup
+import io
+
+with io.open('README.md', 'r', encoding='utf-8') as readme_file:
+  readme = readme_file.read()
 
 setup(
     name='GSMTC35',
     version='1.4',
     description='GSM TC35/MC35 controller (Send/Receive SMS/MMS/Call and a lot more!)',
-    long_description='Visit GitHub for more information: https://github.com/QuentinCG/GSM-TC35-Python-Library',
+    long_description=readme,
     url='https://github.com/QuentinCG/GSM-TC35-Python-Library',
     author='Quentin Comte-Gaz',
     author_email='quentin@comte-gaz.com',
