@@ -43,7 +43,7 @@ import logging
 
 # Relative path to import GSMTC35 (not needed if GSMTC35 installed from pip)
 import sys
-sys.path.append("..")
+sys.path.append("../..")
 
 from GSMTC35 import GSMTC35
 import serial
