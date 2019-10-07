@@ -111,10 +111,10 @@ import sys
 from GSMTC35 import GSMTC35
 
 gsm = GSMTC35()
-pin = 1234
-puk = 12345678
-pin2 = 4321
-puk2 = 87654321
+pin = "1234"
+puk = "12345678"
+pin2 = "4321"
+puk2 = "87654321"
 
 # Mandatory step (PIN/PUK/PIN2/PUK2 will be entered if required, not needed to specify them)
 if not gsm.setup(_port="COM3", _pin=pin, _puk=puk, _pin2=pin2, _puk2=puk2):
