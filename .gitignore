@@ -1,3 +1,6 @@
+# Database used in the example project
+examples/rest_api/*.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

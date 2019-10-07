@@ -39,20 +39,27 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_httpauth import HTTPBasicAuth
 
+from datetime import datetime
+import time
 import logging
+import binascii
+import serial
+
+# Import our internal database helper
+from internal_db import InternalDB
 
 # Relative path to import GSMTC35 (not needed if GSMTC35 installed from pip)
 import sys
 sys.path.append("../..")
 
 from GSMTC35 import GSMTC35
-import serial
 
 
 # ---- Config ----
 pin = "1234"
 puk = "12345678"
 port = "COM8"
+api_database_filename = "sms.db"
 http_port = 8080
 http_prefix = "/api"
 BASIC_AUTH_DATA = {
@@ -61,12 +68,14 @@ BASIC_AUTH_DATA = {
 use_debug = True
 
 # ---- App base ----
-app = Flask(__name__)
-api = Api(app, prefix=http_prefix)
-
 if use_debug:
   logger = logging.getLogger()
   logger.setLevel(logging.DEBUG)
+
+app = Flask(__name__)
+api = Api(app, prefix=http_prefix)
+
+api_database = InternalDB(api_database_filename)
 
 # ---- Authentification (basic-auth) ----
 auth = HTTPBasicAuth()
@@ -242,17 +251,36 @@ class Sms(Resource):
     """Get SMS (GET)
 
     Header should contain:
-      - (str, optional, default: "ALL") 'type': Type of SMS to get ("ALL", "REC UNREAD", "REC READ")
+      - (str, optional, default: All phone number) 'phone_number': Specific phone number to get SMS from
+      - (int, optional, default: All timestamp) 'after_timestamp': Minimum timestamp (UTC) to get SMS from
+      - (int, optional, default: No limit) 'limit': Maximum number of SMS to get
 
     return (json):
       - (bool) 'result': Request worked?
       - (list of sms) 'sms': List of all found SMS
       - (str, optional) 'error': Error explanation if request failed
     """
-    _sms_type = request.headers.get('type', default = GSMTC35.GSMTC35.eSMS.ALL_SMS, type = str)
+    _phone_number = request.headers.get('phone_number', default = None, type = str)
+    _after_timestamp = request.headers.get('after_timestamp', default = None, type = int)
+    _limit = request.headers.get('limit', default = None, type = int)
     valid_gsm, gsm, error = getGSM()
     if valid_gsm:
-      return {"result": True, "sms": gsm.getSMS(sms_type=_sms_type)}
+      # Get all SMS from GSM module
+      all_gsm_sms = gsm.getSMS()
+      if all_gsm_sms:
+        # Insert all GSM module SMS into the database
+        for gsm_sms in all_gsm_sms:
+          # TODO: Merge multipart SMS into one MMS before storing it into one entity in the database
+          _timestamp = int(time.mktime(datetime.strptime(str(str(gsm_sms['date']) + " " + str(gsm_sms['time'].split(' ')[0])), "%y/%m/%d %H:%M:%S").timetuple()))
+          api_database.insertSMS(timestamp=_timestamp, received=True, phone_number=gsm_sms['phone_number'], content=gsm_sms['sms_encoded'])
+        # Delete all SMS from the module (because they are stored in the database)
+        gsm.deleteSMS()
+      # Return all SMS following the right pattern
+      res, all_db_sms = api_database.getSMS(phone_number=_phone_number, after_timestamp=_after_timestamp, limit=_limit)
+      if res:
+        return {"result": True, "sms": all_db_sms}
+      else:
+        return {"result": False, "error": "Failed to get SMS from database"}
     else:
       return {"result": False, "error": error}
   @auth.login_required
@@ -284,7 +312,11 @@ class Sms(Resource):
           _content = bytearray.fromhex(_content).decode('utf-8')
         except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
           return {"result": False, "error": "Failed to decode content"}
-      return {"result": True, "status": gsm.sendSMS(_phone_number, _content)}
+      status_send_sms = gsm.sendSMS(_phone_number, _content)
+      if status_send_sms:
+        if not api_database.insertSMS(timestamp=int(time.time()), received=False, phone_number=str(_phone_number), content=str(binascii.hexlify(_content.encode()).decode())):
+          logging.warning("Failed to insert sent SMS into the database")
+      return {"result": True, "status": status_send_sms}
     else:
       return {"result": False, "error": error}
   @auth.login_required
@@ -292,19 +324,23 @@ class Sms(Resource):
     """Delete SMS (DELETE)
 
     Header should contain:
-      - (str or int, optional, default: "ALL") 'type_or_index': Type or index of SMS to delete ("ALL", "REC UNREAD", "REC READ" or index as integer)
+      - (int, optional, default: All ID) 'id': ID to delete
+      - (str, optional, default: All phone numbers) 'phone_number': Phone number to delete
+      - (int, optional, default: All timestamp) 'before_timestamp': Timestamp (UTC) before it should be deleted
 
     return (json):
       - (bool) 'result': Request worked?
-      - (bool) 'status': SMS deleted
+      - (int) 'count': Number of deleted SMS
       - (str, optional) 'error': Error explanation if request failed
     """
-    type_or_index = request.headers.get('type_or_index', default = GSMTC35.GSMTC35.eSMS.ALL_SMS, type = str)
-    valid_gsm, gsm, error = getGSM()
-    if valid_gsm:
-      return {"result": True, "status": gsm.deleteSMS(sms_type=type_or_index)}
+    _id = request.headers.get('id', default = None, type = int)
+    _phone_number = request.headers.get('phone_number', default = None, type = str)
+    _before_timestamp = request.headers.get('before_timestamp', default = None, type = int)
+    result, count_deleted = api_database.deleteSMS(id=_id, phone_number=_phone_number, before_timestamp=_before_timestamp)
+    if result:
+      return {"result": True, "count": int(count_deleted)}
     else:
-      return {"result": False, "error": error}
+      return {"result": False, "error": "Failed to delete all SMS from database"}
 
 api.add_resource(Call, '/call')
 api.add_resource(Ping, '/ping')
