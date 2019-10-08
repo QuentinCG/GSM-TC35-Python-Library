@@ -342,10 +342,98 @@ class Sms(Resource):
     else:
       return {"result": False, "error": "Failed to delete all SMS from database"}
 
+class Info(Resource):
+  """Get information on module or SIM"""
+  @auth.login_required
+  def get(self):
+    """Get Information (GET)
+
+    Header should contain:
+      - (str) 'request': Request specific data:
+                          - 'last_call_duration': Get last call duration (in sec)
+                          - 'manufacturer': Get manufacturer ID
+                          - 'model': Get model ID
+                          - 'revision': Get revision ID
+                          - 'IMEI': Get IMEI
+                          - 'IMSI': Get IMSI
+                          - 'sleep_mode_status': Check if module in sleep mode (True=sleeping, False=Not sleeping)
+                          - 'current_used_operator': Get currently used operator
+                          - 'signal_strength': Get the signal strength (in dBm)
+                          - 'operators_list': Get list of operators
+                          - 'neighbour_cells_list': Get list of neighbour cells
+                          - 'accumulated_call_meter': Get accumulated call meter (in home units)
+                          - 'max_accumulated_call_meter': Get max accumulated call meter (in home units)
+                          - 'temperature_status': Get module temperature status (True=critical, False=OK)
+
+    return (json):
+      - (bool) 'result': Request worked?
+      - (int, str, list) 'result': Result of the request (type depends on the request)
+      - (str, optional) 'error': Error explanation if request failed
+    """
+    _request = request.headers.get('request', default = None, type = str)
+    if _request == None:
+      return {"result": False, "error": "'request' not specified"}
+
+    valid_gsm, gsm, error = getGSM()
+    if valid_gsm:
+      # Execute the correct request
+      _request = _request.lower()
+      if _request == 'last_call_duration':
+        call_duration = gsm.getLastCallDuration()
+        if call_duration != -1:
+          response = call_duration
+        else:
+          return {"result": False, "error": "Failed to get last call duration"}
+      elif _request == 'manufacturer':
+        response = str(gsm.getManufacturerId())
+      elif _request == 'model':
+        response = str(gsm.getModelId())
+      elif _request == 'revision':
+        response = str(gsm.getRevisionId())
+      elif _request == 'imei':
+        response = str(gsm.getIMEI())
+      elif _request == 'imsi':
+        response = str(gsm.getIMSI())
+      elif _request == 'sleep_mode_status':
+        response = gsm.isInSleepMode()
+      elif _request == 'current_used_operator':
+        response = str(gsm.getOperatorName())
+      elif _request == 'signal_strength':
+        sig_strength = gsm.getSignalStrength()
+        if sig_strength != -1:
+          response = sig_strength
+        else:
+          return {"result": False, "error": "Failed to get signal strength"}
+      elif _request == 'operators_list':
+        response = gsm.getOperatorNames()
+      elif _request == 'neighbour_cells_list':
+        response = gsm.getNeighbourCells()
+      elif _request == 'accumulated_call_meter':
+        acc = gsm.getAccumulatedCallMeter()
+        if acc != -1:
+          response = acc
+        else:
+          return {"result": False, "error": "Failed to get accumulated call meter"}
+      elif _request == 'max_accumulated_call_meter':
+        acc = gsm.getAccumulatedCallMeterMaximum()
+        if acc != -1:
+          response = acc
+        else:
+          return {"result": False, "error": "Failed to get max accumulated call meter"}
+      elif _request == 'temperature_status':
+        response = gsm.isTemperatureCritical()
+      else:
+        return {"result": False, "error": "Invalid request parameter"}
+
+      return {"result": True, "result": response}
+    else:
+      return {"result": False, "error": error}
+
 api.add_resource(Call, '/call')
 api.add_resource(Ping, '/ping')
 api.add_resource(Sms, '/sms')
 api.add_resource(Date, '/date')
+api.add_resource(Info, '/info')
 
 
 # ---- Launch application ----
