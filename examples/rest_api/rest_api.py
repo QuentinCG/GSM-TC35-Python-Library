@@ -16,7 +16,7 @@
    - More to come soon...
 
   Requirement:
-   - Install (pip install) 'flask', 'flask_restful' and 'flask-httpauth'
+   - Install (pip install) 'flask', 'flask_restful' and 'flask-httpauth', ['pyopenssl']
 
   TODO:
    - Get config as file parameters (using 'getopt') instead of hardcoded in file
@@ -66,6 +66,14 @@ BASIC_AUTH_DATA = {
   "basic_user": "test"
 }
 use_debug = True
+
+# SSL
+# - No certificate: None
+# - Self signed certificate: 'adhoc'
+# - Your own certificate: ('cert.pem', 'key.pem')
+# WARNING: Use a certificate for production !
+api_ssl_context = None
+
 
 # ---- App base ----
 if use_debug:
@@ -438,4 +446,4 @@ api.add_resource(Info, '/info')
 
 # ---- Launch application ----
 if __name__ == '__main__':
-  app.run(port=http_port, debug=use_debug)
+  app.run(port=http_port, ssl_context=api_ssl_context, debug=use_debug)
