@@ -173,6 +173,9 @@ print("Picked up: "+str(gsm.pickUpCall()))
 # Hang up call
 print("Hanged up: "+str(gsm.hangUpCall()))
 
+# Check Call/SMS/Fax/Data forwarding
+print("Call/SMS/Fax/Data forwarding status: "+str(gsm.getForwardStatus()))
+
 # Add entry in GSM module phonebook
 print("Added contact to GSM module phonebook: "
       +str(gsm.addEntryToPhonebook("0600000000", "Dummy contact",

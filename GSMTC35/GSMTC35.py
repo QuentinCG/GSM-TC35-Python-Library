@@ -175,6 +175,63 @@ class GSMTC35:
     LOCAL = 129
     INTERNATIONAL = 145
 
+  class eForwardClass:
+    VOICE = 1
+    DATA = 2
+    FAX = 4
+    SMS = 8
+    DATA_CIRCUIT_SYNC = 16
+    DATA_CIRCUIT_ASYNC = 32
+    DEDICATED_PACKED_ACCESS = 64
+    DEDICATED_PAD_ACCESS = 128
+
+  @staticmethod
+  def eForwardClassToString(data):
+    data = int(data)
+    if data == GSMTC35.eForwardClass.VOICE:
+      return "VOICE"
+    elif data == GSMTC35.eForwardClass.DATA:
+      return "DATA"
+    elif data == GSMTC35.eForwardClass.FAX:
+      return "FAX"
+    elif data == GSMTC35.eForwardClass.SMS:
+      return "SMS"
+    elif data == GSMTC35.eForwardClass.DATA_CIRCUIT_SYNC:
+      return "DATA_CIRCUIT_SYNC"
+    elif data == GSMTC35.eForwardClass.DATA_CIRCUIT_ASYNC:
+      return "DATA_CIRCUIT_ASYNC"
+    elif data == GSMTC35.eForwardClass.DEDICATED_PACKED_ACCESS:
+      return "DEDICATED_PACKED_ACCESS"
+    elif data == GSMTC35.eForwardClass.DEDICATED_PAD_ACCESS:
+      return "DEDICATED_PAD_ACCESS"
+
+    return "UNDEFINED"
+
+  class eForwardReason:
+    UNCONDITIONAL = 0
+    MOBILE_BUSY = 1
+    NO_REPLY = 2
+    NOT_REACHABLE = 3
+    ALL_CALL_FORWARDING = 4
+    ALL_CONDITIONAL_CALL_FORWARDING = 5
+
+  @staticmethod
+  def eForwardReasonToString(data):
+    data = int(data)
+    if data == GSMTC35.eForwardReason.UNCONDITIONAL:
+      return "UNCONDITIONAL"
+    elif data == GSMTC35.eForwardReason.MOBILE_BUSY:
+      return "MOBILE_BUSY"
+    elif data == GSMTC35.eForwardReason.NO_REPLY:
+      return "NO_REPLY"
+    elif data == GSMTC35.eForwardReason.NOT_REACHABLE:
+      return "NOT_REACHABLE"
+    elif data == GSMTC35.eForwardReason.ALL_CALL_FORWARDING:
+      return "ALL_CALL_FORWARDING"
+    elif data == GSMTC35.eForwardReason.ALL_CONDITIONAL_CALL_FORWARDING:
+      return "ALL_CONDITIONAL_CALL_FORWARDING"
+
+    return "UNDEFINED"
 
   ############################ STANDALONE FUNCTIONS ############################
   @staticmethod
@@ -2307,6 +2364,44 @@ class GSMTC35:
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     return call_state, phone
+
+  ############################# FORWARD FUNCTIONS ##############################
+  def getForwardStatus(self):
+    """Get forward status (is call/data/fax/sms forwarded to an other phone number?)
+
+    return: ([{'enabled':bool, 'class':str, 'phone_number':str, 'is_international':bool}]) List of forwarded status
+    """
+    forwards = self.__sendCmdAndGetFullResult(cmd=GSMTC35.__NORMAL_AT+"CCFC=0,2", additional_timeout=15)
+    result = []
+
+    if len(forwards) <= 0:
+      logging.error("Command to get forward status failed")
+      return result
+
+    for forward in forwards:
+      enabled_status = ""
+      _class = ""
+      phone_number = None
+      if len(forward) > 8 or forward[:7] == "+CCFC: ":
+        forward = forward[7:]
+        # Split remaining data from the line
+        split_list = forward.split(",")
+        if len(split_list) >= 2:
+          # Get all data
+          enabled_status = bool(split_list[0] == "1")
+          _class = GSMTC35.eForwardClassToString(int(split_list[1]))
+          forward_res = {"enabled": enabled_status, "class": _class}
+          if len(split_list) >= 3:
+            forward_res["phone_number"] = str(split_list[2])
+          if len(split_list) >= 4:
+            forward_res["is_international"] = bool(int(split_list[3]) == GSMTC35.__ePhoneNumberType.INTERNATIONAL)
+          result.append(forward_res)
+        else:
+          logging.warning("Impossible to parse forward information \""+forward+"\"")
+      else:
+        loggging.warning("Impossible to get forward from \""+forward+"\" line")
+
+    return result
 
 
   ################################ PIN FUNCTIONS ###############################
