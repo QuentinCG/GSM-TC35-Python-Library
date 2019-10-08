@@ -19,6 +19,7 @@ Non-exhaustive list of GSMTC35 class functionalities:
   - Send/Receive/Delete SMS/MMS
   - Call/Re-call (possible to hide phone number)
   - Hang-up/Pick-up call
+  - Enable/disable/check Call/SMS/Fax forwarding
   - Get/Add/Delete phonebook entries (phone numbers + contact names)
   - Sleep with wake up possibilities (Low power consumption)
   - Check if someone is calling
@@ -175,6 +176,10 @@ print("Hanged up: "+str(gsm.hangUpCall()))
 
 # Check Call/SMS/Fax/Data forwarding
 print("Call/SMS/Fax/Data forwarding status: "+str(gsm.getForwardStatus()))
+
+# Enable/disable Call/SMS/Fax/Data forwarding
+print("Enable call forwarding: "+str(gsm.setForwardStatus(GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.eForwardClass.VOICE, True, "+33601020304")))
+print("Disable call forwarding: "+str(gsm.setForwardStatus(GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.eForwardClass.VOICE, False)))
 
 # Add entry in GSM module phonebook
 print("Added contact to GSM module phonebook: "

@@ -2366,6 +2366,37 @@ class GSMTC35:
     return call_state, phone
 
   ############################# FORWARD FUNCTIONS ##############################
+  def setForwardStatus(self, forward_reason, forward_class, enable, phone_number=None):
+    """Enable/disable call/sms/data/fax forwarding
+
+    Keyword arguments:
+      forward_reason -- (eForwardReason) Reason to forward (unconditional, phone busy, ...)
+      forward_class -- (eForwardClass) Type of information to forward (SMS, call, fax, data, ...)
+      enable -- (bool) Enable (True) or disable (False) forwarding ?
+      phone_number -- (str, optional) Phone number to use if enabling forwarding (mandatory) or phone number to disable (optional)
+
+    return: (bool) Request success?
+    """
+    # Guess phone number type which is needed for enabling forwarding
+    phone_number_type = ""
+    if phone_number:
+      phone_number_type = str(GSMTC35.__guessPhoneNumberType(phone_number))
+    else:
+      phone_number = ""
+
+    # Forwarding mode
+    if enable:
+      # Register and activate call forwarding
+      mode = "3"
+    else:
+      # Erase and deactivate call forwarding
+      mode = "4"
+
+    return self.__sendCmdAndCheckResult(cmd=GSMTC35.__NORMAL_AT+"CCFC="\
+                                        +str(forward_reason)+","+str(mode)+","+str(phone_number)+","\
+                                        +str(phone_number_type)+","+str(forward_class),\
+                                        additional_timeout=15)
+
   def getForwardStatus(self):
     """Get forward status (is call/data/fax/sms forwarded to an other phone number?)
 
