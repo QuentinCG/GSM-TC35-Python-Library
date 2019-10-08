@@ -20,19 +20,16 @@
 
   TODO:
    - Get config as file parameters (using 'getopt') instead of hardcoded in file
-   - Add more API: Phonebook/Info/Reboot/...
-   - Use HTTPS: https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
    - Use better authentification (basic-auth is not optimized, token based auth would be more secured): https://blog.miguelgrinberg.com/post/restful-authentication-with-flask
    - Have possibility to chose between authentification type (no auth, basic auth, token-based auth)
-   - Use sleep mode ?
 """
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
 __copyright__ = "Copyright Quentin Comte-Gaz (2019)"
 __python_version__ = "3.+"
-__version__ = "0.1 (2019/10/06)"
-__status__ = "Example in progress (not secured and not fully implemented)"
+__version__ = "0.2 (2019/10/08)"
+__status__ = "Can be used for test but not for production (not fully secured)"
 
 
 from flask import Flask, request
@@ -277,10 +274,45 @@ class Sms(Resource):
       all_gsm_sms = gsm.getSMS()
       if all_gsm_sms:
         # Insert all GSM module SMS into the database
+        all_mms = []
         for gsm_sms in all_gsm_sms:
-          # TODO: Merge multipart SMS into one MMS before storing it into one entity in the database
           _timestamp = int(time.mktime(datetime.strptime(str(str(gsm_sms['date']) + " " + str(gsm_sms['time'].split(' ')[0])), "%y/%m/%d %H:%M:%S").timetuple()))
-          api_database.insertSMS(timestamp=_timestamp, received=True, phone_number=gsm_sms['phone_number'], content=gsm_sms['sms_encoded'])
+          if ('header_multipart_ref_id' in gsm_sms) and ('header_multipart_current_part_nb' in gsm_sms) and ('header_multipart_nb_of_part' in gsm_sms):
+            all_mms.append(gsm_sms)
+          else:
+            if not api_database.insertSMS(timestamp=_timestamp, received=True, phone_number=gsm_sms['phone_number'], content=gsm_sms['sms_encoded']):
+              logging.warning("Failed to insert SMS into database")
+
+        # Try to merge multipart SMS into MMS before storing them into the database
+        while len(all_mms) > 0:
+          id = all_mms[0]['header_multipart_ref_id']
+          nb_of_part = all_mms[0]['header_multipart_nb_of_part']
+          _timestamp = int(time.mktime(datetime.strptime(str(str(all_mms[0]['date']) + " " + str(all_mms[0]['time'].split(' ')[0])), "%y/%m/%d %H:%M:%S").timetuple()))
+          _phone_number = all_mms[0]['phone_number']
+          parts = {}
+          parts[int(all_mms[0]['header_multipart_current_part_nb'])] = all_mms[0]['sms_encoded']
+          all_mms.remove(all_mms[0])
+          all_sms_to_remove = []
+
+          for sms in all_mms:
+            if sms['header_multipart_ref_id'] == id:
+              logging.error("FOUND ONE")
+              parts[int(sms['header_multipart_current_part_nb'])] = sms['sms_encoded']
+              all_sms_to_remove.append(sms)
+
+          for sms_to_remove in all_sms_to_remove:
+            all_mms.remove(sms_to_remove)
+
+          full_msg = ""
+          for current_part in range(nb_of_part):
+            try:
+              full_msg += parts[current_part+1]
+            except KeyError:
+              logging.warning("Missing part of the MMS... Missing part may be received later and will be stored as an other SMS!")
+
+          if not api_database.insertSMS(timestamp=_timestamp, received=True, phone_number=_phone_number, content=full_msg):
+            logging.warning("Failed to insert SMS into database")
+
         # Delete all SMS from the module (because they are stored in the database)
         gsm.deleteSMS()
       # Return all SMS following the right pattern

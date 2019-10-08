@@ -10,8 +10,8 @@ __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
 __copyright__ = "Copyright Quentin Comte-Gaz (2019)"
 __python_version__ = "3.+"
-__version__ = "0.1 (2019/10/08)"
-__status__ = "In progress"
+__version__ = "1.0 (2019/10/08)"
+__status__ = "Ready for production"
 
 import os
 import sqlite3
@@ -64,6 +64,10 @@ class InternalDB():
     """
     if not self.initialized:
       logging.error("Class not initialized")
+      return False
+
+    if not content:
+      logging.warning("Empty SMS will not be stored in the database")
       return False
 
     try:
