@@ -8,12 +8,12 @@
    - Call (POST http://127.0.0.1:8080/api/call with header data 'phone_number' and optional 'hide_phone_number')
    - Hang up call (DELETE http://127.0.0.1:8080/api/call)
    - Pick up call (PUT http://127.0.0.1:8080/api/call)
-   - Get SMS/MMS (GET http://127.0.0.1:8080/api/sms with optional header data 'type')
+   - Get SMS/MMS (GET http://127.0.0.1:8080/api/sms with optional header data 'phone_number', 'after_timestamp' and 'limit')
    - Send SMS/MMS (POST http://127.0.0.1:8080/api/sms with header data 'phone_number', 'content' and optional 'is_content_in_hexa_format')
-   - Delete SMS/MMS (DELETE http://127.0.0.1:8080/api/sms with optional header data 'type_or_index')
+   - Delete SMS/MMS (DELETE http://127.0.0.1:8080/api/sms with optional header data 'id', 'phone_number', 'before_timestamp')
    - Get module date (GET http://127.0.0.1:8080/api/date)
    - Set module date to current date (POST http://127.0.0.1:8080/api/date)
-   - More to come soon...
+   - Get module or SIM information (GET http://127.0.0.1:8080/api/info with header data 'request')
 
   Requirement:
    - Install (pip install) 'flask', 'flask_restful' and 'flask-httpauth', ['pyopenssl']
