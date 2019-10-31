@@ -225,7 +225,7 @@ if __name__ == '__main__':
     logging.debug("All SMS:\n"+str(data))
 
     logging.debug("---Deleting first found SMS from the database---")
-    res, number_of_deleted_sms = internal_db.deleteSMS(id=int(data[0]["id"]))#phone_number="+33601020304", before_timestamp=5)
+    res, number_of_deleted_sms = internal_db.deleteSMS(sms_id=int(data[0]["id"]))#phone_number="+33601020304", before_timestamp=5)
     if not res:
       logging.warning("Failed to delete SMS")
     else:

@@ -47,7 +47,6 @@ import time, sys, getopt
 import logging
 import datetime
 from math import ceil
-import sys
 from random import randint
 
 class GSMTC35:
