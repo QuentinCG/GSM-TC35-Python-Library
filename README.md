@@ -1,5 +1,5 @@
 # GSM TC35 Python library
-[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/QuentinCG/GSM-TC35-Python-Library/blob/master/LICENSE.md) [![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/QuentinCG)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7a2104d9938a493a8d1d4896e2bb0fe2)](https://www.codacy.com/manual/QuentinCG/GSM-TC35-Python-Library?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=QuentinCG/GSM-TC35-Python-Library&amp;utm_campaign=Badge_Grade) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/QuentinCG/GSM-TC35-Python-Library/blob/master/LICENSE.md) [![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/QuentinCG)
 
 ## What is it
 
