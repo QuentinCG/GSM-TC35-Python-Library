@@ -375,7 +375,7 @@ class Sms(Resource):
     _id = request.headers.get('id', default = None, type = int)
     _phone_number = request.headers.get('phone_number', default = None, type = str)
     _before_timestamp = request.headers.get('before_timestamp', default = None, type = int)
-    result, count_deleted = api_database.deleteSMS(id=_id, phone_number=_phone_number, before_timestamp=_before_timestamp)
+    result, count_deleted = api_database.deleteSMS(sms_id=_id, phone_number=_phone_number, before_timestamp=_before_timestamp)
     if result:
       return {"result": True, "count": int(count_deleted)}
     else:

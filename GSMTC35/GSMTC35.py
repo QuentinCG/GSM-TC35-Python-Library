@@ -748,7 +748,6 @@ class GSMTC35:
       except ValueError:
         # Index max is not correct, let's try to get other elements
         logging.warning("Impossible to get the phonebook max index (value error)")
-        pass
     else:
       logging.warning("Impossible to get the phonebook max index (length error)")
 
@@ -759,7 +758,6 @@ class GSMTC35:
       except ValueError:
         # Max phone length is not correct, let's try to get other elements
         logging.warning("Impossible to get the phonebook max phone length (value error)")
-        pass
     else:
       logging.warning("Impossible to get the phonebook max phone length (length error)")
 
@@ -770,7 +768,6 @@ class GSMTC35:
       except ValueError:
         # Max phone length is not correct, let's try to get other elements
         logging.warning("Impossible to get the phonebook max contact name length (value error)")
-        pass
     else:
       logging.warning("Impossible to get the phonebook max contact name length (length error)")
 
