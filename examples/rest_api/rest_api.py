@@ -120,7 +120,7 @@ def getGSM():
 
 def checkBoolean(value):
   """Return a bool from a string (or bool)"""
-  if type(value) == bool:
+  if isinstance(value, bool):
     return value
   return str(value).lower() == "true" or str(value) == "1"
 
@@ -285,7 +285,7 @@ class Sms(Resource):
 
         # Try to merge multipart SMS into MMS before storing them into the database
         while len(all_mms) > 0:
-          id = all_mms[0]['header_multipart_ref_id']
+          ref_id = all_mms[0]['header_multipart_ref_id']
           nb_of_part = all_mms[0]['header_multipart_nb_of_part']
           _timestamp = int(time.mktime(datetime.strptime(str(str(all_mms[0]['date']) + " " + str(all_mms[0]['time'].split(' ')[0])), "%y/%m/%d %H:%M:%S").timetuple()))
           _phone_number = all_mms[0]['phone_number']
@@ -295,8 +295,7 @@ class Sms(Resource):
           all_sms_to_remove = []
 
           for sms in all_mms:
-            if sms['header_multipart_ref_id'] == id:
-              logging.error("FOUND ONE")
+            if sms['header_multipart_ref_id'] == ref_id:
               parts[int(sms['header_multipart_current_part_nb'])] = sms['sms_encoded']
               all_sms_to_remove.append(sms)
 
@@ -465,7 +464,7 @@ class Info(Resource):
       else:
         return {"result": False, "error": "Invalid request parameter"}
 
-      return {"result": True, "result": response}
+      return {"result": True, "response": response}
     else:
       return {"result": False, "error": error}
 

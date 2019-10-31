@@ -737,7 +737,6 @@ class GSMTC35:
     except ValueError:
       # Index min is not correct, let's try to get other elements
       logging.warning("Impossible to get the phonebook min index")
-      pass
 
     # Split last elements
     split_result = split_result[1].split(",")
@@ -919,13 +918,13 @@ class GSMTC35:
     return True
 
   @staticmethod
-  def __unpack7bit(bytes, header_length=0, message_length=0):
+  def __unpack7bit(content, header_length=0, message_length=0):
     """Decode byte with Default Alphabet encoding ('7bit')
 
     Function logic inspired from https://github.com/pmarti/python-messaging/blob/master/messaging/utils.py#L173
 
     Keyword arguments:
-      bytes -- (bytes) Content to decode as hexa
+      content -- (bytes) Content to decode as hexa
 
     return: (bytes) Decoded content
     """
@@ -937,8 +936,8 @@ class GSMTC35:
     count = last = 0
     result = []
     try:
-      for i in range(0, len(bytes), 2):
-        byte = int(bytes[i:i + 2], 16)
+      for i in range(0, len(content), 2):
+        byte = int(content[i:i + 2], 16)
         mask = 0x7F >> count
         out = ((byte & mask) << count) + last
         last = byte >> (7 - count)
@@ -961,44 +960,44 @@ class GSMTC35:
       return ''
 
   @staticmethod
-  def __unpack8bit(bytes):
+  def __unpack8bit(encoded_data):
     """Decode hexa byte encoded with 8bit encoding
 
     Keyword arguments:
-      bytes -- (bytes) Content to decode
+      encoded_data -- (bytes) Content to decode
 
     return: (bytes) Decoded content
     """
-    bytes = [ord(x) for x in bytes]
-    return ''.join([chr(x) for x in bytes])
+    encoded_data = [ord(x) for x in encoded_data]
+    return ''.join([chr(x) for x in encoded_data])
 
   @staticmethod
-  def __unpackUCS2(bytes):
+  def __unpackUCS2(encoded_data):
     """Decode hexa byte encoded with extended encoding (UTF-16 / UCS2)
 
     Keyword arguments:
-      bytes -- (bytes) Content to decode
+      encoded_data -- (bytes) Content to decode
 
     return: (bytes) Decoded content
     """
-    return bytes.decode('utf-16be')
+    return encoded_data.decode('utf-16be')
 
   @staticmethod
-  def __packUCS2(bytes, user_data_id=0):
+  def __packUCS2(content, user_data_id=0):
     """Encode bytes into hexadecimal representation of extended encoded User Data with User Data Length (UTF-16 / UCS2)
 
     Keyword arguments:
-      bytes -- (bytes) Content to encode
+      content -- (bytes) Content to encode
       user_data_id -- (int[1:255] or 0 for random, optional, default: random) ID of the potential multipart message
 
     return: ([bytes]) List of Hexadecimal representation of extended encoded User Data with User Data Length (UTF-16 / UCS2)
     """
     # Check if message can be sent in one part or is multipart
-    if (len(bytes) > 70):
+    if (len(content) > 70):
       logging.debug("Encoding multipart message in UCS-2 (Utf-16)")
       # Get all parts
       n = 67 # Max number of unicode char in multipart message (excepting header)
-      all_msg_to_encode = [bytes[i:i+n] for i in range(0, len(bytes), n)]
+      all_msg_to_encode = [content[i:i+n] for i in range(0, len(content), n)]
       logging.debug("Messages to encode:\n - "+'\n - '.join(all_msg_to_encode))
       all_encoded_msg = []
       nb_of_parts = len(all_msg_to_encode)
@@ -1023,11 +1022,11 @@ class GSMTC35:
 
       return all_encoded_msg
     else:
-      encoded_message = binascii.hexlify(bytes.encode('utf-16be')).decode()
+      encoded_message = binascii.hexlify(content.encode('utf-16be')).decode()
       if len(encoded_message) % 4 != 0:
         encoded_message = str("00") + str(encoded_message)
 
-      encoded_message_length = format(int(2*((len(bytes)))), 'x')
+      encoded_message_length = format(int(2*((len(content)))), 'x')
       if len(encoded_message_length) % 2 != 0:
         encoded_message_length = "0" + encoded_message_length
 
@@ -1242,7 +1241,7 @@ class GSMTC35:
     result["phone_number"] = str(phoneNumberDecoded)
 
     # Protocol ID / TP-PID
-    protocolId = int(msg[:2], 16)
+    # protocolId = int(msg[:2], 16)
     msg = msg[2:]
 
     # Data coding scheme / TP-DCS
@@ -2412,7 +2411,6 @@ class GSMTC35:
     for forward in forwards:
       enabled_status = ""
       _class = ""
-      phone_number = None
       if len(forward) > 8 or forward[:7] == "+CCFC: ":
         forward = forward[7:]
         # Split remaining data from the line
@@ -2551,7 +2549,6 @@ class GSMTC35:
 
     # Get result without "+CFUN: "
     result = result[7:]
-    sleeping = True
 
     try:
       if int(result) == 0:
@@ -2633,14 +2630,14 @@ class GSMTC35:
       # At least one character was received (it means sleep mode is not active anymore)
       if len(data) > 0:
         if len(data) >= 5:
-          type = data[:5]
-          if type == "+CMTI":
+          wakeup_type = data[:5]
+          if wakeup_type == "+CMTI":
             gsm_waked_up_by_sms = True
-          elif type == "+CLIP" or type == "RING":
+          elif wakeup_type == "+CLIP" or wakeup_type == "RING":
             gsm_waked_up_by_call = True
-          elif type == "^SCTM":
+          elif wakeup_type == "^SCTM":
             gsm_waked_up_by_temperature = True
-          elif type == "+CALA":
+          elif wakeup_type == "+CALA":
             gsm_waked_up_by_alarm = True
 
       # Set to asynchronous element to default state

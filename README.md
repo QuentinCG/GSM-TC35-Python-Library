@@ -13,45 +13,45 @@ Most functionalities should work with other GSM module using AT commands.
 ## Functionalities
 
 Non-exhaustive list of GSMTC35 class functionalities:
-- Check/Enter PIN/PUK
-- Lock/Unlock/Change PIN
-- Send/Receive/Delete SMS/MMS
-- Call/Re-call (possible to hide phone number)
-- Hang-up/Pick-up call
-- Enable/disable/check Call/SMS/Fax forwarding
-- Get/Add/Delete phonebook entries (phone numbers + contact names)
-- Sleep with wake up possibilities (Low power consumption)
-- Check if someone is calling
-- Check if there is a call in progress
-- Check call status (call/ringing/...) and get the associated phone number
-- Get last call duration
-- Check if module is alive
-- Switch off
-- Reboot
-- Check sleep mode status
-- Get IDs (manufacturer, model, revision, IMEI, IMSI)
-- Set module to manufacturer state
-- Get the current used operator
-- Get the signal strength (in dBm)
-- Set and get the date from the module internal clock
-- Get list of operators
-- Get list of neighbour cells
-- Get accumulated call meter and accumulated call meter max (in home units)
-- Get temperature status
-- Change the baudrate mode
+  - Check/Enter PIN/PUK
+  - Lock/Unlock/Change PIN
+  - Send/Receive/Delete SMS/MMS
+  - Call/Re-call (possible to hide phone number)
+  - Hang-up/Pick-up call
+  - Enable/disable/check Call/SMS/Fax forwarding
+  - Get/Add/Delete phonebook entries (phone numbers + contact names)
+  - Sleep with wake up possibilities (Low power consumption)
+  - Check if someone is calling
+  - Check if there is a call in progress
+  - Check call status (call/ringing/...) and get the associated phone number
+  - Get last call duration
+  - Check if module is alive
+  - Switch off
+  - Reboot
+  - Check sleep mode status
+  - Get IDs (manufacturer, model, revision, IMEI, IMSI)
+  - Set module to manufacturer state
+  - Get the current used operator
+  - Get the signal strength (in dBm)
+  - Set and get the date from the module internal clock
+  - Get list of operators
+  - Get list of neighbour cells
+  - Get accumulated call meter and accumulated call meter max (in home units)
+  - Get temperature status
+  - Change the baudrate mode
 
 Non-exhaustive list of shell commands:
-- Send/Receive/Delete SMS/MMS
-- Call
-- Hang-up/Pick-up call
-- Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock, call status and associated phone number, operator list, neighbour cells, accumulated call meter (max), temperature status, sleep mode status)
+  - Send/Receive/Delete SMS/MMS
+  - Call
+  - Hang-up/Pick-up call
+  - Show information (PIN status, operator, signal strength, last call duration, manufacturer/model/revision ID, IMEI, IMSI, date from internal clock, call status and associated phone number, operator list, neighbour cells, accumulated call meter (max), temperature status, sleep mode status)
 
 ## How to install (python script and shell)
 
-- Install package calling `python setup.py install` from the root of this repository
-- Connect your GSM module to a serial port
-- Get the port name (you can find it out by calling `python GSMTC35/GSMTC35.py --help` from the root of this repository)
-- Load your shell or python script
+  - Install package calling `python setup.py install` from the root of this repository
+  - Connect your GSM module to a serial port
+  - Get the port name (you can find it out by calling `python GSMTC35/GSMTC35.py --help` from the root of this repository)
+  - Load your shell or python script
 
 ## How to use in shell
 
@@ -252,7 +252,7 @@ gsm.close()
 ## Examples
 
 List of examples:
-- <a target="_blank" href="https://github.com/QuentinCG/GSM-TC35-Python-Library/tree/master/examples/rest_api/README.md">Expose GSM module to REST-API</a>
+  - <a target="_blank" href="https://github.com/QuentinCG/GSM-TC35-Python-Library/tree/master/examples/rest_api/README.md">Expose GSM module to REST-API</a>
 
 ## License
 

@@ -86,13 +86,13 @@ class InternalDB():
 
     return True
 
-  def deleteSMS(self, id=None, phone_number=None, before_timestamp=None):
+  def deleteSMS(self, sms_id=None, phone_number=None, before_timestamp=None):
     """Delete SMS from the database
 
     WARNING: If no parameters are specified, all SMS will be deleted from the database
 
     Keyword arguments:
-      id -- (int, optional) ID of the SMS to delete
+      sms_id -- (int, optional) ID of the SMS to delete
       phone_number -- (string, optional) Only phone number to delete
       before_timestamp -- (int, optional) Maximum timestamp
 
@@ -108,11 +108,11 @@ class InternalDB():
         request = "DELETE FROM sms"
         params = []
         # Potential conditions
-        if (id != None) or (phone_number != None) or (before_timestamp != None):
+        if (sms_id != None) or (phone_number != None) or (before_timestamp != None):
           request += " WHERE "
-          if (id != None):
+          if (sms_id != None):
             request += " id = ?"
-            params.append(int(id))
+            params.append(int(sms_id))
           if (phone_number != None):
             if len(params) > 0:
               request += " AND"
@@ -182,9 +182,9 @@ class InternalDB():
         # Fetch all SMS
         res = []
         for row in cursor.fetchall():
-          id, timestamp, received, phone_number, content = row
+          sms_id, timestamp, received, phone_number, content = row
           sms_data = {}
-          sms_data["id"] = int(id)
+          sms_data["id"] = int(sms_id)
           sms_data["timestamp"] = int(timestamp)
           sms_data["received"] = bool(received)
           sms_data["phone_number"] = str(phone_number)
