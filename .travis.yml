@@ -13,8 +13,7 @@ script:
   - pip uninstall GSMTC35 --yes
   - python setup.py install
   # Launch test coverage
-  - coverage run test/automatic_test.py
-  #- coverage run test/manual_test.py
+  - coverage run test/unittest.py
 
 # Push the results back to codecov
 after_success:
