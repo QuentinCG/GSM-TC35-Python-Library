@@ -2986,7 +2986,7 @@ def __help(func="", filename=__file__):
 
 
 ################################# MAIN FUNCTION ###############################
-def main():
+def main(parsed_args = sys.argv[1:]):
   """Shell GSM utility function"""
 
   baudrate = 115200
@@ -2998,7 +2998,7 @@ def main():
 
   # Get options
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hlactsdemniogfjzb:u:p:y:x:v:",
+    opts, args = getopt.getopt(parsed_args, "hlactsdemniogfjzb:u:p:y:x:v:",
                                ["baudrate=", "serialPort=", "pin=", "puk=", "pin2=", "puk2=", "debug", "nodebug", "help",
                                 "isAlive", "call", "hangUpCall", "isSomeoneCalling",
                                 "pickUpCall", "sendSMS", "sendEncodedSMS", "sendTextModeSMS", "deleteSMS", "getSMS",
