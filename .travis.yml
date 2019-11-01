@@ -6,6 +6,7 @@ python:
 sudo: false
 install:
   - pip install codecov
+  - pip install mock
 
 script:
   # (Re)install library
