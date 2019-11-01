@@ -2948,7 +2948,7 @@ def __help(func="", filename=__file__):
     print("DELETE SMS (-d, --deleteSMS): Delete SMS")
 
   # Get information
-  if func in ("-o", "--information"):
+  if func in ("o", "information"):
     print("Get information from module and network (IMEI, clock, operator, ...)\r\n"
           +"\r\n"
           +"Usage:\r\n"
