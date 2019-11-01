@@ -8,7 +8,6 @@
 
 import unittest
 from GSMTC35 import GSMTC35
-import sys
 
 class AutomaticTestGSMTC35(unittest.TestCase):
   def test_fail_setup(self):
@@ -16,9 +15,14 @@ class AutomaticTestGSMTC35(unittest.TestCase):
     self.assertFalse(gsm.setup(_port="COM_Invalid", _pin="1234", _puk="12345678", _pin2="4321", _puk2="87654321"))
 
   def test_cmd_fail(self):
-    # Request extended help
+    # Request failed because nothing requested
     with self.assertRaises(SystemExit) as cm:
-      GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678']))
+      GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678' '--debug', '--nodebug']))
+    self.assertNotEqual(cm.exception.code, 0)
+
+    # Request failed because invalid argument
+    with self.assertRaises(SystemExit) as cm:
+      GSMTC35.main((['--undefinedargument']))
     self.assertNotEqual(cm.exception.code, 0)
 
   def test_cmd_help(self):
