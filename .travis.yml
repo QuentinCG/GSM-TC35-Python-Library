@@ -1,17 +1,21 @@
 language: python
+python:
+  #- "2.7"
+  - "3.4"
+  #- "3.8"
 sudo: false
 install:
-- pip install codecov
+  - pip install codecov
 
 script:
-# (Re)install library
-# This implicitly covers build
-- pip uninstall GSMTC35 --yes
-- python setup.py install
-# Launch test coverage
-- coverage run test/automatic_test.py
-#- coverage run test/manual_test.py
+  # (Re)install library
+  # This implicitly covers build
+  - pip uninstall GSMTC35 --yes
+  - python setup.py install
+  # Launch test coverage
+  - coverage run test/automatic_test.py
+  #- coverage run test/manual_test.py
 
 # Push the results back to codecov
 after_success:
-- codecov
+  - codecov
