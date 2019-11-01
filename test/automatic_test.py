@@ -15,12 +15,17 @@ class AutomaticTestGSMTC35(unittest.TestCase):
     gsm = GSMTC35.GSMTC35()
     self.assertFalse(gsm.setup(_port="COM_Invalid", _pin="1234", _puk="12345678", _pin2="4321", _puk2="87654321"))
 
+  def test_cmd_fail(self):
+    # Request extended help
+    with self.assertRaises(SystemExit) as cm:
+      GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678']))
+    self.assertNotEqual(cm.exception.code, 0)
+
   def test_cmd_help(self):
     # No paramaters
     with self.assertRaises(SystemExit) as cm:
       GSMTC35.main()
-    if (cm.exception.code != 1 and cm.exception.code != 2):
-      self.failed("Code return for basic help not valid: "+str(cm.exception.code))
+    self.assertNotEqual(cm.exception.code, 0)
 
     # Request basic help
     with self.assertRaises(SystemExit) as cm:
