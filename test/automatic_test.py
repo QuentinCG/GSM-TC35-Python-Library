@@ -19,7 +19,8 @@ class AutomaticTestGSMTC35(unittest.TestCase):
     # No paramaters
     with self.assertRaises(SystemExit) as cm:
       GSMTC35.main()
-    self.assertEqual(cm.exception.code, 1)
+    if (cm.exception.code != 1 and cm.exception.code != 2):
+      self.failed("Code return for basic help not valid: "+str(cm.exception.code))
 
     # Request basic help
     with self.assertRaises(SystemExit) as cm:
