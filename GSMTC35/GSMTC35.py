@@ -1629,7 +1629,7 @@ class GSMTC35:
             # We don't need to get first line returned by the GSM module
             pass
           else:
-            logging.warning("Invalid numbers for neighbour cell \""+str(line)+"\"")
+            logging.warning("Invalid parameters in neighbour cell line \""+str(line)+"\"")
       else:
         logging.warning("Invalid number of element to parse for neighbour cell \""+str(line)+"\"")
 
