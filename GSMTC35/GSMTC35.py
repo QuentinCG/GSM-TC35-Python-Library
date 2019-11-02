@@ -1458,10 +1458,12 @@ class GSMTC35:
     # Send request and get data
     result = self.__sendCmdAndCheckResult(cmd=GSMTC35.__BASE_AT+"^SMSO",
                                           result="MS OFF")
-    # Delete the "OK" of the request from the buffer
-    self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
 
     if result:
+      # Delete the "OK" of the request from the buffer
+      self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
+
+      # Close the connection
       self.close()
 
     return result
