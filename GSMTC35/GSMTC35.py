@@ -273,6 +273,7 @@ class GSMTC35:
     """Initialize the GSM module class with undefined serial connection"""
     self.__initialized = False
     self.__serial = serial.Serial()
+    self.__timeout_sec = 0
 
 
   ################################### SETUP ####################################
@@ -297,13 +298,13 @@ class GSMTC35:
     return: (bool) Module initialized
     """
     # Close potential previous GSM session
+    self.__timeout_sec = _timeout_sec
     try:
       self.close()
     except Exception:
       pass
 
     # Create new GSM session
-    self.__timeout_sec = _timeout_sec
     try:
       self.__serial = serial.Serial(
                       port=_port,
@@ -538,11 +539,11 @@ class GSMTC35:
     while time.time() - start_time < self.__timeout_sec + additional_timeout:
       while self.__serial.inWaiting() > 0:
         line = self.__readLine()
-        if (content in line) and len(line) > 0:
-          return line
-        if len(error_result) > 0 and (error_result == line):
+        if len(error_result) > 0 and (str(error_result) == str(line)):
           logging.error("GSM module returned error \""+str(error_result)+"\"")
           return ""
+        if (content in line) and len(line) > 0:
+          return line
       # Wait 100ms if no data in the serial buffer
       time.sleep(.100)
     logging.error("Impossible to get line containing \""+str(content)+"\" on time")
