@@ -10,6 +10,7 @@ import unittest
 from GSMTC35 import GSMTC35
 from unittest.mock import patch
 import logging
+import re
 
 class MockSerial:
   """
@@ -61,8 +62,20 @@ class MockSerial:
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'IN' in MockSerial.__read_write[0]:
         check_val = MockSerial.__read_write[0]['IN']
-        if str(data) != str(check_val):
-          raise AssertionError('Mock Serial: Should write "' + str(check_val) + '" but "'+str(data)+'" requested')
+
+        test_mode = "strict_compare"
+        if 'mode' in MockSerial.__read_write[0]:
+          test_mode = MockSerial.__read_write[0]["mode"]
+
+        if test_mode == "strict_compare":
+          if str(data) != str(check_val):
+            raise AssertionError('Mock Serial: Should write "' + str(check_val) + '" but "'+str(data)+'" requested (strict compare)')
+        elif test_mode == "regex":
+          if not re.search(check_val, data):
+            raise AssertionError('Mock Serial: Should write "' + str(check_val) + '" but "'+str(data)+'" requested (regex compare)')
+        else:
+          raise AssertionError('Mock Serial: Invalid test_mode (should be "regex" or "strict_compare" (default)')
+
         MockSerial.__read_write.pop(0)
         return len(data)
     return 0
@@ -711,6 +724,19 @@ class TestGSMTC35(unittest.TestCase):
 
     MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'+CAMM: INVALID_NUMBER\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.isTemperatureCritical(), False)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_set_internal_clock_to_current_date(self):
+    logging.debug("test_all_set_internal_clock_to_current_date")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'^AT\+CCLK=\"[0-9]{2}\/[0-9]{2}\/[0-9]{2},[0-9]{2}:[0-9]{2}:[0-9]{2}\"\r\n$', 'mode': 'regex'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.setInternalClockToCurrentDate(), True)
+
+    MockSerial.initializeMock([{'IN': b'^AT\+CCLK=\"[0-9]{2}\/[0-9]{2}\/[0-9]{2},[0-9]{2}:[0-9]{2}:[0-9]{2}\"\r\n$', 'mode': 'regex'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.setInternalClockToCurrentDate(), False)
 
 if __name__ == '__main__':
   logger = logging.getLogger()
