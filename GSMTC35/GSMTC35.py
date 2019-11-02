@@ -2444,14 +2444,14 @@ class GSMTC35:
     res = ','.join(res)
     if str(base_cpin+GSMTC35.eRequiredPin.READY) in res:
       required_pin = GSMTC35.eRequiredPin.READY
-    elif str(base_cpin+GSMTC35.eRequiredPin.PIN) in res:
-      required_pin = GSMTC35.eRequiredPin.PIN
-    elif str(base_cpin+GSMTC35.eRequiredPin.PUK) in res:
-      required_pin = GSMTC35.eRequiredPin.PUK
     elif str(base_cpin+GSMTC35.eRequiredPin.PIN2) in res:
       required_pin = GSMTC35.eRequiredPin.PIN2
     elif str(base_cpin+GSMTC35.eRequiredPin.PUK2) in res:
       required_pin = GSMTC35.eRequiredPin.PUK2
+    elif str(base_cpin+GSMTC35.eRequiredPin.PIN) in res:
+      required_pin = GSMTC35.eRequiredPin.PIN
+    elif str(base_cpin+GSMTC35.eRequiredPin.PUK) in res:
+      required_pin = GSMTC35.eRequiredPin.PUK
     else:
       logging.warning("Failed to understand if PIN(2)/PUK(2) are needed.")
       return False, ""
