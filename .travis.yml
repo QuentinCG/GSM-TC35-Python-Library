@@ -12,9 +12,11 @@ script:
   # (Re)install library
   # This implicitly covers build (and test coverage on setup.py)
   - pip uninstall GSMTC35 --yes
-  - coverage run setup.py install
+  - coverage run -p setup.py install
   # Launch library test (+ test coverage)
-  - coverage run test/test.py
+  - coverage run -p test/test.py
+  # Prepare results before sending them back to codecov
+  - coverage combine
 
 # Push the results back to codecov
 after_success:
