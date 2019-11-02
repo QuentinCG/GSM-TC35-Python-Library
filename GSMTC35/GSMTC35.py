@@ -1609,9 +1609,6 @@ class GSMTC35:
                                            additional_timeout=waiting_time_sec)
 
     for line in lines:
-      if len(line) <= 0:
-        continue
-
       split_line = line.split()
       if len(split_line) >= 7:
         try:
@@ -1766,7 +1763,7 @@ class GSMTC35:
     try:
       return datetime.datetime.strptime(date, GSMTC35.__DATE_FORMAT)
     except ValueError:
-      return -1
+      logging.error("Invalid date returned by GSM: "+str(date))
 
     return -1
 
@@ -1814,8 +1811,8 @@ class GSMTC35:
           try:
             entry = {}
             entry["index"] = int(split_list[0])
-            entry["phone_number"] = str(split_list[1])
-            entry["contact_name"] = str(split_list[3])
+            entry["phone_number"] = str(split_list[1]).replace('"', '')
+            entry["contact_name"] = str(split_list[3]).replace('"', '')
             phonebook_entries.append(entry)
           except ValueError:
             logging.warning("Impossible to add this phonebook entry \""+str(line)+"\"")
