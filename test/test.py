@@ -580,6 +580,43 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+COPS=3,0\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertEqual(str(gsm.getOperatorName()), "")
 
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_signal_strength(self):
+    logging.debug("test_all_get_signal_strength")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: 60,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), 7)
+
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: 100,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: -1,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: WRONG,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), -1)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_operator_names(self):
+    logging.debug("test_all_get_operator_names")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+COPN\r\n'}, {'OUT': b'+COPN: 1,\"FAKE1\"\r\n'},
+                               {'OUT': b'+COPN: 2,\"FAKE 2\"\r\n'}, {'OUT': b'+COPN: 3,\"Fake Three\"\r\n'},
+                               {'OUT': b'+COPN: DUMMY_ERROR\r\n'},{'OUT': b'DUMMY_ERROR\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getOperatorNames(), ["FAKE1", "FAKE 2", "Fake Three"])
+
+    MockSerial.initializeMock([{'IN': b'AT+COPN\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getOperatorNames(), [])
+
 if __name__ == '__main__':
   logger = logging.getLogger()
   logger.setLevel(logging.DEBUG)
