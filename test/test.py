@@ -862,6 +862,62 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CPBS="LD"\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.deleteEntryFromPhonebook(index=65, phonebook_type=GSMTC35.GSMTC35.ePhonebookType.LAST_DIALLING))
 
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_delete_all_phonebook_entries(self):
+    logging.debug("test_all_delete_all_phonebook_entries")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="MC"\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=1,250\r\n'},
+                               {'OUT': b'+CPBR: 1,"931123456",129,"Quentin Test"\r\n'},
+                               {'OUT': b'+CPBR: 2,"9501234567",129,""\r\n'},
+                               {'OUT': b'+CPBR: 4,"901234567",129,"Other"\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=2\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=4\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.deleteAllEntriesFromPhonebook(phonebook_type=GSMTC35.GSMTC35.ePhonebookType.MISSED_CALLS))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="MC"\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=1,250\r\n'},
+                               {'OUT': b'+CPBR: 1,"931123456",129,"Quentin Test"\r\n'},
+                               {'OUT': b'+CPBR: 2,"9501234567",129,""\r\n'},
+                               {'OUT': b'+CPBR: 4,"901234567",129,"Other"\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=2\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CPBW=4\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertFalse(gsm.deleteAllEntriesFromPhonebook(phonebook_type=GSMTC35.GSMTC35.ePhonebookType.MISSED_CALLS))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="MC"\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.deleteAllEntriesFromPhonebook(phonebook_type=GSMTC35.GSMTC35.ePhonebookType.MISSED_CALLS))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_success_send_sms_7bit(self):
+    logging.debug("test_all_send_sms")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # One part 7 bit SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=34\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000017C2F03C3D06DD40E2341D346D4E41657CB80D679701', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="33601020304", msg="Basic 7 bit SMS example"))
+
+    # Multipart 7 bit SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=140\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000091050003[0-9A-F]{2}02019A75363D0D0FCBE9A01B489CA683A6CD29A88C0FB7E1ECB2CBE572B95C2E97CB0572B95C2E97CBE572B9402E97CBE572B95C2E17C8E572B95C2E97CBE502B95C2E97CBE572B95C2097CBE572B95C2E970BE472B95C2E97CBE572815C2E97CBE572B95C2E90CBE572B95C2E97CB0572B95C2E97CBE572B9402E', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=49\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000029050003[0-9A-F]{2}02025C2E97CBE572B95C2097CBE572B95C2E970BE472B95C2E97CBE572159D44', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="33601020304", msg="Multipart 7 bit SMS example.......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........END"))
 
 if __name__ == '__main__':
   logger = logging.getLogger()
