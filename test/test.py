@@ -1014,7 +1014,22 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.isCallInProgress())
 
-  # TODO: test_all_get_last_call_duration
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_last_call_duration(self):
+    logging.debug("test_all_get_last_call_duration")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT^SLCD\r\n'}, {'OUT': b'^SLCD: 12:34:56\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getLastCallDuration(), 12*3600+34*60+56)
+
+    MockSerial.initializeMock([{'IN': b'AT^SLCD\r\n'}, {'OUT': b'^SLCD: INVALID_TIME\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getLastCallDuration(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT^SLCD\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getLastCallDuration(), -1)
+
   # TODO: test_all_get_current_call_state
   # TODO: test_all_set_forward_status
   # TODO: test_all_get_forward_status
