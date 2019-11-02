@@ -9,6 +9,7 @@
 import unittest
 from GSMTC35 import GSMTC35
 from unittest.mock import patch
+import logging
 
 class MockSerial:
   """
@@ -75,7 +76,7 @@ class TestGSMTC35(unittest.TestCase):
   def test_cmd_fail(self):
     # Request failed because nothing requested
     with self.assertRaises(SystemExit) as cm:
-      GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678' '--debug', '--nodebug']))
+      GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678', '--nodebug', '--debug']))
     self.assertNotEqual(cm.exception.code, 0)
 
     # Request failed because invalid argument
@@ -158,9 +159,52 @@ class TestGSMTC35(unittest.TestCase):
       GSMTC35.main((["--help", "information"]))
     self.assertEqual(cm.exception.code, 0)
 
+  @patch('serial.Serial', new=MockSerial)
   def test_fail_setup(self):
+    MockSerial.initializeMock([
+      {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATV1\r\n'}, {'OUT': b'ERROR\r\n'},
+      {'IN': b'AT+CMEE=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
+    ])
     gsm = GSMTC35.GSMTC35()
-    self.assertFalse(gsm.setup(_port="COM_Invalid", _pin="1234", _puk="12345678", _pin2="4321", _puk2="87654321"))
+    self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
+
+    MockSerial.initializeMock([
+      {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATV1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMEE=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'ERROR\r\n'},
+      {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    gsm = GSMTC35.GSMTC35()
+    self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
+
+    MockSerial.initializeMock([
+      {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATV1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMEE=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'},
+      {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    gsm = GSMTC35.GSMTC35()
+    self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
 
   @patch('serial.Serial', new=MockSerial)
   def test_success_setup(self):
@@ -169,5 +213,22 @@ class TestGSMTC35(unittest.TestCase):
     gsm = GSMTC35.GSMTC35()
     self.assertTrue(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
 
+    MockSerial.initializeMock([
+      {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATE0\r\n'}, {'OUT': b'ERROR\r\n'},
+      {'IN': b'ATV1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMEE=0\r\n'}, {'OUT': b'ERROR\r\n'},
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'ERROR\r\n'}
+    ])
+    gsm = GSMTC35.GSMTC35()
+    self.assertTrue(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
+
 if __name__ == '__main__':
+  logger = logging.getLogger()
+  logger.setLevel(logging.DEBUG)
   unittest.main()
