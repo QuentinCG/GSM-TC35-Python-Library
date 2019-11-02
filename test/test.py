@@ -897,6 +897,122 @@ class TestGSMTC35(unittest.TestCase):
     self.assertFalse(gsm.deleteAllEntriesFromPhonebook(phonebook_type=GSMTC35.GSMTC35.ePhonebookType.MISSED_CALLS))
 
   @patch('serial.Serial', new=MockSerial)
+  def test_all_hang_up_call(self):
+    logging.debug("test_all_hang_up_call")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.hangUpCall())
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATH\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.hangUpCall())
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATH\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.hangUpCall())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_pick_up_call(self):
+    logging.debug("test_all_pick_up_call")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'ATA;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.pickUpCall())
+
+    MockSerial.initializeMock([{'IN': b'ATA;\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.pickUpCall())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_call(self):
+    logging.debug("test_all_call")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'ATD33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATH\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATD33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'ATD#31#33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=True))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATH\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATD#31#33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=True))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'ATD33601020304;\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.call(phone_number="33601020304", hide_phone_number=False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'ATD#31#33601020304;\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.call(phone_number="33601020304", hide_phone_number=True))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_recall(self):
+    logging.debug("test_all_recall")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'ATDL;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.reCall())
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATH\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'ATDL;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.reCall())
+
+    MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'ATDL;\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.reCall())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_is_someone_calling(self):
+    logging.debug("test_all_is_someone_calling")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 3\r\n'}])
+    self.assertTrue(gsm.isSomeoneCalling())
+
+    MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 4\r\n'}])
+    self.assertFalse(gsm.isSomeoneCalling())
+
+    MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.isSomeoneCalling())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_is_call_in_progress(self):
+    logging.debug("test_all_is_call_in_progress")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 4\r\n'}])
+    self.assertTrue(gsm.isCallInProgress())
+
+    MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 3\r\n'}])
+    self.assertFalse(gsm.isCallInProgress())
+
+    MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.isCallInProgress())
+
+  @patch('serial.Serial', new=MockSerial)
   def test_success_send_sms_7bit(self):
     logging.debug("test_success_send_sms_7bit")
     gsm = GSMTC35.GSMTC35()
