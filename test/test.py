@@ -774,8 +774,8 @@ class TestGSMTC35(unittest.TestCase):
                                                      {'contact_name': 'Other', 'index': 4, 'phone_number': '901234567'}])
 
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
-                               {'OUT': b'INVALID_LINE_BEFORE_RESULT...\r\n'},
                                {'IN': b'AT+CPBR=1,100\r\n'},
+                               {'OUT': b'INVALID_LINE_BEFORE_RESULT...\r\n'},
                                {'OUT': b'+CPBR: 1,"931123456",129,"Quentin Test"\r\n'},
                                {'OUT': b'+CPBR: 2,"9501234567",129,""\r\n'},
                                {'OUT': b'+CPBR: 4,"901234567",129,"Other"\r\n'},
@@ -787,6 +787,27 @@ class TestGSMTC35(unittest.TestCase):
                                                      {'contact_name': 'Other', 'index': 4, 'phone_number': '901234567'}])
 
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (100-1),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (100)\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (NOT_NUMBER-1),20,14\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-NOT_NUMBER),20,14\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),NOT_NUMBER,14\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),20,NOT_NUMBER\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100)\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),20\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getPhonebookEntries(), [])
 
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'ERROR\r\n'}])
