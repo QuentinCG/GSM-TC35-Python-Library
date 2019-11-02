@@ -831,21 +831,21 @@ class TestGSMTC35(unittest.TestCase):
 
     MockSerial.initializeMock([{'IN': b'AT+CPBS="ME"\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'AT+CPBW=,"33601020304",129,"Test ADD"\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="Test ADD", phonebook_type=GSMTC35.GSMTC35.ePhonebookType.GSM_MODULE))
+                               {'IN': b'AT+CPBW=,"+33601020304",145,"Test ADD"\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.addEntryToPhonebook(phone_number="+33601020304", contact_name="Test ADD", phonebook_type=GSMTC35.GSMTC35.ePhonebookType.GSM_MODULE))
 
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'AT+CPBW=,"33601020304",129,"Test ADD"\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="Test ADD"))
+                               {'IN': b'AT+CPBW=,"0601020304",129,"Test ADD"\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.addEntryToPhonebook(phone_number="0601020304", contact_name="Test ADD"))
 
     MockSerial.initializeMock([{'IN': b'AT+CPBS="ME"\r\n'}, {'OUT': b'ERROR\r\n'}])
-    self.assertFalse(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="Test ADD", phonebook_type=GSMTC35.GSMTC35.ePhonebookType.GSM_MODULE))
+    self.assertFalse(gsm.addEntryToPhonebook(phone_number="0601020304", contact_name="Test ADD", phonebook_type=GSMTC35.GSMTC35.ePhonebookType.GSM_MODULE))
 
     MockSerial.initializeMock([])
     self.assertFalse(gsm.addEntryToPhonebook(phone_number="", contact_name="Test ADD"))
 
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertFalse(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="CONTACT NAME TOOOOOOOOOOOOOO LONG"))
+    self.assertFalse(gsm.addEntryToPhonebook(phone_number="0601020304", contact_name="CONTACT NAME TOOOOOOOOOOOOOO LONG"))
 
   @patch('serial.Serial', new=MockSerial)
   def test_all_delete_phonebook_entry(self):
@@ -937,30 +937,30 @@ class TestGSMTC35(unittest.TestCase):
     self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
     MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'ATD33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=False))
+                               {'IN': b'ATD0601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="0601020304", hide_phone_number=False))
 
     MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
                                {'IN': b'ATH\r\n'}, {'OUT': b'ERROR\r\n'},
-                               {'IN': b'ATD33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=False))
+                               {'IN': b'ATD0601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="0601020304", hide_phone_number=False))
 
     MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'ATD#31#33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=True))
+                               {'IN': b'ATD#31#0601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="0601020304", hide_phone_number=True))
 
     MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'ERROR\r\n'},
                                {'IN': b'ATH\r\n'}, {'OUT': b'ERROR\r\n'},
-                               {'IN': b'ATD#31#33601020304;\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.call(phone_number="33601020304", hide_phone_number=True))
+                               {'IN': b'ATD#31#0601020304;\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.call(phone_number="0601020304", hide_phone_number=True))
 
     MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'ATD33601020304;\r\n'}, {'OUT': b'ERROR\r\n'}])
-    self.assertFalse(gsm.call(phone_number="33601020304", hide_phone_number=False))
+                               {'IN': b'ATD0601020304;\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.call(phone_number="0601020304", hide_phone_number=False))
 
     MockSerial.initializeMock([{'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'ATD#31#33601020304;\r\n'}, {'OUT': b'ERROR\r\n'}])
-    self.assertFalse(gsm.call(phone_number="33601020304", hide_phone_number=True))
+                               {'IN': b'ATD#31#0601020304;\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.call(phone_number="0601020304", hide_phone_number=True))
 
   @patch('serial.Serial', new=MockSerial)
   def test_all_recall(self):
@@ -1039,6 +1039,7 @@ class TestGSMTC35(unittest.TestCase):
   # TODO: test_all_is_in_sleep_mode
   # TODO: test_all_sleep
 
+  # TODO: Use "valid" local/international phone number in this test scenario (0601020304 or +33601020304, not 33601020304)
   @patch('serial.Serial', new=MockSerial)
   def test_success_send_sms_7bit(self):
     logging.debug("test_success_send_sms_7bit")
@@ -1076,7 +1077,7 @@ class TestGSMTC35(unittest.TestCase):
   # TODO: test_success_get_sms_all_mode
   # TODO: test_failed_get_sms_all_mode
   # TODO: test_all_delete_sms
-
+  # TODO: Enum convertion (eForwardReasonToString, eForwardClassToString, eCallToString)
 
 if __name__ == '__main__':
   logger = logging.getLogger()
