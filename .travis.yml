@@ -14,7 +14,6 @@ script:
   - pip uninstall GSMTC35 --yes
   - coverage run -p setup.py install
   # Launch library test (+ test coverage)
-  - coverage run -p GSMTC35/GSMTC35.py --help
   - coverage run -p test/test.py
   # Prepare results before sending them back to codecov
   - coverage combine
