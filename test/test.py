@@ -91,6 +91,7 @@ class TestGSMTC35(unittest.TestCase):
   """
   TODO: Explanation of the class + functions
   """
+  # TODO: Add more case and use mock
   def test_fail_cmd(self):
     logging.debug("test_fail_cmd")
     # Request failed because nothing requested
@@ -103,6 +104,7 @@ class TestGSMTC35(unittest.TestCase):
       GSMTC35.main((['--undefinedargument']))
     self.assertNotEqual(cm.exception.code, 0)
 
+  # TODO: Add more case and use mock
   def test_all_cmd_help(self):
     logging.debug("test_all_cmd_help")
     # No paramaters
@@ -572,8 +574,8 @@ class TestGSMTC35(unittest.TestCase):
 
     MockSerial.initializeMock([{'IN': b'AT&F0\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.setModuleToManufacturerState())
-  @patch('serial.Serial', new=MockSerial)
 
+  @patch('serial.Serial', new=MockSerial)
   def test_all_switch_off(self):
     logging.debug("test_all_switch_off")
     gsm = GSMTC35.GSMTC35()
@@ -1012,6 +1014,16 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CPAS\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.isCallInProgress())
 
+  # TODO: test_all_get_last_call_duration
+  # TODO: test_all_get_current_call_state
+  # TODO: test_all_set_forward_status
+  # TODO: test_all_get_forward_status
+  # TODO: test_all_lock_sim_pin
+  # TODO: test_all_unlock_sim_pin
+  # TODO: test_all_change_pin
+  # TODO: test_all_is_in_sleep_mode
+  # TODO: test_all_sleep
+
   @patch('serial.Serial', new=MockSerial)
   def test_success_send_sms_7bit(self):
     logging.debug("test_success_send_sms_7bit")
@@ -1044,8 +1056,11 @@ class TestGSMTC35(unittest.TestCase):
   # TODO: test_failed_send_sms_7bit
   # TODO: test_success_send_sms_ucs2
   # TODO: test_failed_send_sms_ucs2
-  # TODO: test_success_send_sms_tex_mode
-  # TODO: test_failed_send_sms_tex_mode
+  # TODO: test_success_send_sms_text_mode
+  # TODO: test_failed_send_sms_text_mode
+  # TODO: test_success_get_sms_all_mode
+  # TODO: test_failed_get_sms_all_mode
+  # TODO: test_all_delete_sms
 
 
 if __name__ == '__main__':
