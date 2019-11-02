@@ -556,14 +556,23 @@ class GSMTC35:
     Keyword arguments:
       before -- (string) Data to send before the end of line
       after -- (string) Data to send after the end of line
-    """
-    self.__serial.write("{}\r\n".format(before).encode())
-    logging.debug("[OUT] "+str(before))
-    if after != "":
-      time.sleep(0.100)
-      self.__serial.write(after.encode())
-      logging.debug("[OUT] "+str(after))
 
+    return: (bool) Send line worked?
+    """
+    if self.__serial.write("{}\r\n".format(before).encode()):
+      logging.debug("[OUT] "+str(before))
+      if after != "":
+        time.sleep(0.100)
+        if self.__serial.write(after.encode()) > 0:
+          logging.debug("[OUT] "+str(after))
+          return True
+        else:
+          logging.warning("Failed to write \""+str(after)+"\" to GSM (after).")
+      else:
+        return True
+    else:
+      logging.warning("Failed to write \""+str(after)+"\" to GSM (before).")
+    return False
 
   def __sendCmdAndGetNotEmptyLine(self, cmd, after="", additional_timeout=0,
                                   content="", error_result=__RETURN_ERROR):
@@ -579,8 +588,9 @@ class GSMTC35:
     return: (string) Line without the end of line containing {content} (empty if nothing received or if an error occured)
     """
     self.__deleteAllRxData()
-    self.__sendLine(cmd, after)
-    return self.__getNotEmptyLine(content, error_result, additional_timeout)
+    if self.__sendLine(cmd, after):
+      return self.__getNotEmptyLine(content, error_result, additional_timeout)
+    return ""
 
 
   def __sendCmdAndGetFullResult(self, cmd, after="", additional_timeout=0,
@@ -596,10 +606,11 @@ class GSMTC35:
 
     return: ([string,]) All lines without the end of line (empty if nothing received or if an error occured)
     """
-    self.__deleteAllRxData()
-    self.__sendLine(cmd, after)
-
     val_result = []
+
+    self.__deleteAllRxData()
+    if not self.__sendLine(cmd, after):
+      return val_result
 
     start_time = time.time()
     while time.time() - start_time < self.__timeout_sec + additional_timeout:
@@ -633,7 +644,9 @@ class GSMTC35:
     return: (bool) Command successful (result returned from the GSM module)
     """
     self.__deleteAllRxData()
-    self.__sendLine(cmd, after)
+    if not self.__sendLine(cmd, after):
+      return False
+
     result = self.__waitDataContains(result, error_result, additional_timeout)
 
     if not result:
