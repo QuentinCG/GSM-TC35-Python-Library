@@ -786,6 +786,9 @@ class TestGSMTC35(unittest.TestCase):
                                                      {'contact_name': '', 'index': 2, 'phone_number': '9501234567'},
                                                      {'contact_name': 'Other', 'index': 4, 'phone_number': '901234567'}])
 
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="SM"\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(GSMTC35.GSMTC35.ePhonebookType.SIM), [])
+
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (100-1),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getPhonebookEntries(), [])
 
@@ -816,6 +819,49 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CPBR=1,100\r\n'},  {'OUT': b'ERROR\r\n'}])
     self.assertEqual(gsm.getPhonebookEntries(), [])
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_add_phonebook_entry(self):
+    logging.debug("test_all_add_phonebook_entry")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="ME"\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=,"33601020304",129,"Test ADD"\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="Test ADD", phonebook_type=GSMTC35.GSMTC35.ePhonebookType.GSM_MODULE))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=,"33601020304",129,"Test ADD"\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="Test ADD"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="ME"\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="Test ADD", phonebook_type=GSMTC35.GSMTC35.ePhonebookType.GSM_MODULE))
+
+    MockSerial.initializeMock([])
+    self.assertFalse(gsm.addEntryToPhonebook(phone_number="", contact_name="Test ADD"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertFalse(gsm.addEntryToPhonebook(phone_number="33601020304", contact_name="CONTACT NAME TOOOOOOOOOOOOOO LONG"))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_delete_phonebook_entry(self):
+    logging.debug("test_all_delete_phonebook_entry")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="LD"\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBW=65\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.deleteEntryFromPhonebook(index=65, phonebook_type=GSMTC35.GSMTC35.ePhonebookType.LAST_DIALLING))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBW=65\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.deleteEntryFromPhonebook(index=65))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="LD"\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.deleteEntryFromPhonebook(index=65, phonebook_type=GSMTC35.GSMTC35.ePhonebookType.LAST_DIALLING))
+
 
 if __name__ == '__main__':
   logger = logging.getLogger()
