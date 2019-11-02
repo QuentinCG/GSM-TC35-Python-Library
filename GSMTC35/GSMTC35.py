@@ -1569,7 +1569,7 @@ class GSMTC35:
 
     for operator in operators:
       operator_name = ""
-      if len(operator) > 8 or operator[:7] == "+COPN: ":
+      if len(operator) > 8 and operator[:7] == "+COPN: ":
         operator = operator[7:]
         # Split remaining data from the line
         split_list = operator.split(",")
@@ -1579,7 +1579,7 @@ class GSMTC35:
         else:
           logging.warning("Impossible to parse operator information \""+operator+"\"")
       else:
-        loggging.warning("Impossible to get operator from \""+operator+"\" line")
+        logging.warning("Impossible to get operator from \""+operator+"\" line")
       if operator_name != "":
         result.append(operator_name)
 
