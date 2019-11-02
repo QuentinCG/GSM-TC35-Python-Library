@@ -18,7 +18,7 @@ class MockSerial:
   __is_open = True
   __read_write = []
 
-  default_read_write_for_setup = [
+  __default_serial_for_setup = [
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATV1\r\n'}, {'OUT': b'OK\r\n'},
@@ -30,6 +30,10 @@ class MockSerial:
       {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
     ]
+
+  @staticmethod
+  def getDefaultConfigForSetup():
+    return MockSerial.__default_serial_for_setup + []
 
   @staticmethod
   def initializeMock(read_write, is_open = True):
@@ -74,6 +78,7 @@ class TestGSMTC35(unittest.TestCase):
   TODO: Explanation of the class + functions
   """
   def test_fail_cmd(self):
+    logging.debug("test_fail_cmd")
     # Request failed because nothing requested
     with self.assertRaises(SystemExit) as cm:
       GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678', '--nodebug', '--debug']))
@@ -85,6 +90,7 @@ class TestGSMTC35(unittest.TestCase):
     self.assertNotEqual(cm.exception.code, 0)
 
   def test_all_cmd_help(self):
+    logging.debug("test_all_cmd_help")
     # No paramaters
     with self.assertRaises(SystemExit) as cm:
       GSMTC35.main()
@@ -161,6 +167,7 @@ class TestGSMTC35(unittest.TestCase):
 
   @patch('serial.Serial', new=MockSerial)
   def test_fail_setup(self):
+    logging.debug("test_fail_setup")
     MockSerial.initializeMock([
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
@@ -173,7 +180,7 @@ class TestGSMTC35(unittest.TestCase):
       {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
     ])
     gsm = GSMTC35.GSMTC35()
-    self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
+    self.assertFalse(gsm.setup(_port="COM_FAKE"))
 
     MockSerial.initializeMock([
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -207,9 +214,10 @@ class TestGSMTC35(unittest.TestCase):
 
   @patch('serial.Serial', new=MockSerial)
   def test_success_setup(self):
-    MockSerial.initializeMock(MockSerial.default_read_write_for_setup)
+    logging.debug("test_success_setup")
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
     gsm = GSMTC35.GSMTC35()
-    self.assertTrue(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
     MockSerial.initializeMock([
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -224,10 +232,11 @@ class TestGSMTC35(unittest.TestCase):
       {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'ERROR\r\n'}
     ])
     gsm = GSMTC35.GSMTC35()
-    self.assertTrue(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678"))
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
   @patch('serial.Serial', new=MockSerial)
   def test_success_pin_during_setup(self):
+    logging.debug("test_success_pin_during_setup")
     # Entered PIN/PUK/PIN2/PUK2
     MockSerial.initializeMock([
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -315,6 +324,7 @@ class TestGSMTC35(unittest.TestCase):
 
   @patch('serial.Serial', new=MockSerial)
   def test_fail_pin_during_setup(self):
+    logging.debug("test_fail_pin_during_setup")
     MockSerial.initializeMock([
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
@@ -378,6 +388,66 @@ class TestGSMTC35(unittest.TestCase):
     ])
     gsm = GSMTC35.GSMTC35()
     self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678", _pin2="4321", _puk2="87654321"))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_is_initialized(self):
+    logging.debug("test_fail_pin_during_setup")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock([])
+    self.assertFalse(gsm.isInitialized())
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+    MockSerial.initializeMock([])
+    self.assertTrue(gsm.isInitialized())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_close(self):
+    logging.debug("test_all_close")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock([{'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.close(), None)
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+    MockSerial.initializeMock([{'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.close(), None)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_reboot(self):
+    logging.debug("test_all_reboot")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+    MockSerial.initializeMock([{'IN': b'AT+CFUN=1,1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'OUT': b'... Rebooting ...\r\n'}, {'OUT': b'^SYSSTART\r\n'},
+                               {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.reboot())
+
+    MockSerial.initializeMock([{'IN': b'AT+CFUN=1,1\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.reboot())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_is_alive(self):
+    logging.debug("test_all_is_alive")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+    MockSerial.initializeMock([{'IN': b'AT\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.isAlive())
+
+    MockSerial.initializeMock([{'IN': b'AT\r\n'}])
+    self.assertFalse(gsm.isAlive())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_manufacturer_id(self):
+    logging.debug("test_all_get_manufacturer_id")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+    MockSerial.initializeMock([{'IN': b'AT+CGMI\r\n'}, {'OUT': b'FAKE_MANUFACTURER\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(str(gsm.getManufacturerId()), "FAKE_MANUFACTURER")
+
+    MockSerial.initializeMock([{'IN': b'AT+CGMI\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(str(gsm.getManufacturerId()), "")
 
 if __name__ == '__main__':
   logger = logging.getLogger()
