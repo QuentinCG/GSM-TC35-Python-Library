@@ -11,6 +11,7 @@ from GSMTC35 import GSMTC35
 from unittest.mock import patch
 import logging
 import re
+import datetime
 
 class MockSerial:
   """
@@ -737,6 +738,22 @@ class TestGSMTC35(unittest.TestCase):
 
     MockSerial.initializeMock([{'IN': b'^AT\+CCLK=\"[0-9]{2}\/[0-9]{2}\/[0-9]{2},[0-9]{2}:[0-9]{2}:[0-9]{2}\"\r\n$', 'mode': 'regex'}, {'OUT': b'ERROR\r\n'}])
     self.assertEqual(gsm.setInternalClockToCurrentDate(), False)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_internal_clock_date(self):
+    logging.debug("test_all_get_internal_clock_date")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'+CCLK: 11/12/13,14:15:16\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getDateFromInternalClock(), datetime.datetime.strptime("11/12/13,14:15:16", "%y/%m/%d,%H:%M:%S"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getDateFromInternalClock(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'+CCLK: INVALID_DATE\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getDateFromInternalClock(), -1)
 
 if __name__ == '__main__':
   logger = logging.getLogger()
