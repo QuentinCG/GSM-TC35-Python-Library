@@ -166,7 +166,6 @@ class TestGSMTC35(unittest.TestCase):
       {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATV1\r\n'}, {'OUT': b'ERROR\r\n'},
       {'IN': b'AT+CMEE=0\r\n'}, {'OUT': b'OK\r\n'},
-      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'},
