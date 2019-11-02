@@ -2325,7 +2325,7 @@ class GSMTC35:
       h, m, s = call_duration.split(':')
       call_duration = int(h) * 3600 + int(m) * 60 + int(s)
     except ValueError:
-      pass
+      call_duration = -1
 
     # Delete last "OK" from buffer
     self.__waitDataContains(self.__RETURN_OK, self.__RETURN_ERROR)
