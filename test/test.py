@@ -755,6 +755,47 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'+CCLK: INVALID_DATE\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getDateFromInternalClock(), -1)
 
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_phonebook_entries(self):
+    logging.debug("test_all_get_phonebook_entries")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBS="SM"\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-250),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=1,250\r\n'},
+                               {'OUT': b'+CPBR: 1,"931123456",129,"Quentin Test"\r\n'},
+                               {'OUT': b'+CPBR: 2,"9501234567",129,""\r\n'},
+                               {'OUT': b'+CPBR: 4,"901234567",129,"Other"\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries("SM"), [{'contact_name': 'Quentin Test', 'index': 1, 'phone_number': '931123456'},
+                                                     {'contact_name': '', 'index': 2, 'phone_number': '9501234567'},
+                                                     {'contact_name': 'Other', 'index': 4, 'phone_number': '901234567'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'OUT': b'INVALID_LINE_BEFORE_RESULT...\r\n'},
+                               {'IN': b'AT+CPBR=1,100\r\n'},
+                               {'OUT': b'+CPBR: 1,"931123456",129,"Quentin Test"\r\n'},
+                               {'OUT': b'+CPBR: 2,"9501234567",129,""\r\n'},
+                               {'OUT': b'+CPBR: 4,"901234567",129,"Other"\r\n'},
+                               {'OUT': b'+CPBR: 7,"INVALID_NUMBER_OF_PARAM"\r\n'},
+                               {'OUT': b'+CPBR: INVALID_INDEX,"901234567",129,"Other"\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [{'contact_name': 'Quentin Test', 'index': 1, 'phone_number': '931123456'},
+                                                     {'contact_name': '', 'index': 2, 'phone_number': '9501234567'},
+                                                     {'contact_name': 'Other', 'index': 4, 'phone_number': '901234567'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (100-1),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CPBR=?\r\n'}, {'OUT': b'+CPBR: (1-100),20,14\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPBR=1,100\r\n'},  {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getPhonebookEntries(), [])
+
 if __name__ == '__main__':
   logger = logging.getLogger()
   logger.setLevel(logging.DEBUG)
