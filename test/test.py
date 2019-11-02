@@ -389,6 +389,21 @@ class TestGSMTC35(unittest.TestCase):
     gsm = GSMTC35.GSMTC35()
     self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678", _pin2="4321", _puk2="87654321"))
 
+    MockSerial.initializeMock([
+      {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATV1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMEE=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: UNDEFINED\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    gsm = GSMTC35.GSMTC35()
+    self.assertFalse(gsm.setup(_port="COM_FAKE", _pin="1234", _puk="12345678", _pin2="4321", _puk2="87654321"))
+
   @patch('serial.Serial', new=MockSerial)
   def test_all_change_baudrate(self):
     logging.debug("test_all_change_baudrate")
@@ -594,6 +609,9 @@ class TestGSMTC35(unittest.TestCase):
     self.assertEqual(gsm.getSignalStrength(), -1)
 
     MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: -1,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: \r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getSignalStrength(), -1)
 
     MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: WRONG,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
