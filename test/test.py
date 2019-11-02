@@ -635,6 +635,83 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+COPN\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertEqual(gsm.getOperatorNames(), [])
 
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_neighbour_cells(self):
+    logging.debug("test_all_get_neighbour_cells")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT^MONP\r\n'},
+                               {'OUT': b'chann rs  dBm   PLMN   BCC C1 C2\r\n'},
+                               {'OUT': b'504   18  -78   26203  1   27 28\r\n'},
+                               {'OUT': b'505   19  -77   26204  2   28 29\r\n'},
+                               {'OUT': b'Inva  lid param eters  he  r  e \r\n'}, # Invalid parameters
+                               {'OUT': b'1     2   3     4      5\r\n'},         # Invalid number of parameters
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getNeighbourCells(), [{"chann": 504, "rs": 18, "dbm": -78, "plmn": 26203, "bcc": 1, "c1": 27, "c2": 28},
+                                               {"chann": 505, "rs": 19, "dbm": -77, "plmn": 26204, "bcc": 2, "c1": 28, "c2": 29}])
+
+    MockSerial.initializeMock([{'IN': b'AT^MONP\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getNeighbourCells(), [])
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_accumulated_call_meter(self):
+    logging.debug("test_all_get_accumulated_call_meter")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CACM?\r\n'}, {'OUT': b'+CACM: FF05\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getAccumulatedCallMeter(), 0xFF05)
+
+    MockSerial.initializeMock([{'IN': b'AT+CACM?\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getAccumulatedCallMeter(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CACM?\r\n'}, {'OUT': b'+CACM: INVALID_NUMBER\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getAccumulatedCallMeter(), -1)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_accumulated_call_meter_maximum(self):
+    logging.debug("test_all_get_accumulated_call_meter_maximum")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CAMM?\r\n'}, {'OUT': b'+CAMM: FFFF\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getAccumulatedCallMeterMaximum(), 0xFFFF)
+
+    MockSerial.initializeMock([{'IN': b'AT+CAMM?\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getAccumulatedCallMeterMaximum(), -1)
+
+    MockSerial.initializeMock([{'IN': b'AT+CAMM?\r\n'}, {'OUT': b'+CAMM: INVALID_NUMBER\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getAccumulatedCallMeterMaximum(), -1)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_is_temperature_critical(self):
+    logging.debug("test_all_is_temperature_critical")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'^SCTM: DUMMY,0,OTHER_DUMMY\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.isTemperatureCritical(), False)
+
+    MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'^SCTM: DUMMY,1,OTHER_DUMMY\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.isTemperatureCritical(), True)
+
+    MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'^SCTM: DUMMY,INVALID_BOOL,OTHER_DUMMY\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.isTemperatureCritical(), False)
+
+    MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'^SCTM: DUMMY\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.isTemperatureCritical(), False)
+
+    MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.isTemperatureCritical(), False)
+
+    MockSerial.initializeMock([{'IN': b'AT^SCTM?\r\n'}, {'OUT': b'+CAMM: INVALID_NUMBER\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.isTemperatureCritical(), False)
+
 if __name__ == '__main__':
   logger = logging.getLogger()
   logger.setLevel(logging.DEBUG)
