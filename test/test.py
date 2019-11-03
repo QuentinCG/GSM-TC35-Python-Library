@@ -1104,7 +1104,56 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CCFC=0,4,,,1\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.GSMTC35.eForwardClass.VOICE, False))
 
-  # TODO: test_all_get_forward_status
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_forward_status(self):
+    logging.debug("test_all_get_forward_status")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'},
+                               {'OUT': b'+CCFC: 0,2\r\n'}, {'OUT': b'+CCFC: 0,1\r\n'}, {'OUT': b'+CCFC: 0,4\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getForwardStatus(), [{'class': 'DATA', 'enabled': False},
+                                              {'class': 'VOICE', 'enabled': False},
+                                              {'class': 'FAX', 'enabled': False}
+                                             ])
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'},
+                               {'OUT': b'+CCFC: 1,2,+33601020304,145\r\n'},
+                               {'OUT': b'+CCFC: 1,1,0601020304,129\r\n'},
+                               {'OUT': b'+CCFC: 0,4\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getForwardStatus(), [{'class': 'DATA', 'enabled': True, 'is_international': True, 'phone_number': '+33601020304'},
+                                              {'class': 'VOICE', 'enabled': True, 'is_international': False, 'phone_number': '0601020304'},
+                                              {'class': 'FAX', 'enabled': False}
+                                             ])
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'},
+                               {'OUT': b'+CCFC: 1,1\r\n'}, {'OUT': b'+CCFC: 0,2\r\n'}, {'OUT': b'+CCFC: 1,4\r\n'},
+                               {'OUT': b'+CCFC: 0,8\r\n'}, {'OUT': b'+CCFC: 1,16\r\n'}, {'OUT': b'+CCFC: 0,32\r\n'},
+                               {'OUT': b'+CCFC: 1,64\r\n'}, {'OUT': b'+CCFC: 0,128\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getForwardStatus(), [{'class': 'VOICE', 'enabled': True},
+                                              {'class': 'DATA', 'enabled': False},
+                                              {'class': 'FAX', 'enabled': True},
+                                              {'class': 'SMS', 'enabled': False},
+                                              {'class': 'DATA_CIRCUIT_SYNC', 'enabled': True},
+                                              {'class': 'DATA_CIRCUIT_ASYNC', 'enabled': False},
+                                              {'class': 'DEDICATED_PACKED_ACCESS', 'enabled': True},
+                                              {'class': 'DEDICATED_PAD_ACCESS', 'enabled': False}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'},
+                               {'OUT': b'+CCFC: INVALID_LIST\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getForwardStatus(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getForwardStatus(), [])
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'}, {'OUT': b'INVALID_DATA\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getForwardStatus(), [])
+
   # TODO: test_all_lock_sim_pin
   # TODO: test_all_unlock_sim_pin
   # TODO: test_all_change_pin
