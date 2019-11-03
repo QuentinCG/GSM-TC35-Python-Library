@@ -1154,9 +1154,56 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CCFC=0,2\r\n'}, {'OUT': b'INVALID_DATA\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getForwardStatus(), [])
 
-  # TODO: test_all_lock_sim_pin
-  # TODO: test_all_unlock_sim_pin
-  # TODO: test_all_change_pin
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_lock_sim_pin(self):
+    logging.debug("test_all_lock_sim_pin")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",1,1234\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.lockSimPin("1234"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",1,4321\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.lockSimPin(4321))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",1,4321\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.lockSimPin(4321))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_unlock_sim_pin(self):
+    logging.debug("test_all_unlock_sim_pin")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",0,1234\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.unlockSimPin("1234"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",0,4321\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.unlockSimPin(4321))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",0,4321\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.unlockSimPin(4321))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_change_pin(self):
+    logging.debug("test_all_change_pin")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",1,1234\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPWD="SC","1234","4321"\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.changePin(old_pin="1234", new_pin="4321"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",1,1234\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.changePin(old_pin="1234", new_pin="4321"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCK="SC",1,1234\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CPWD="SC","1234","4321"\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.changePin(old_pin="1234", new_pin="4321"))
+
   # TODO: test_all_is_in_sleep_mode
   # TODO: test_all_sleep
 
