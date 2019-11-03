@@ -128,6 +128,7 @@ class TestGSMTC35(unittest.TestCase):
   @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_request_except_help_cmd(self):
     logging.debug("test_all_cmd_request_except_help_cmd")
+
     # Request failed because nothing requested
     with self.assertRaises(SystemExit) as cm:
       with CapturingStdOut() as std_output:
@@ -177,6 +178,7 @@ class TestGSMTC35(unittest.TestCase):
         GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
     self.assertEqual(cm.exception.code, 0)
     self.assertTrue("Is alive: True" in std_output)
+
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
       {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'AT\r\n'}, {'OUT': b'ERROR\r\n'},
@@ -186,6 +188,49 @@ class TestGSMTC35(unittest.TestCase):
         GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
     self.assertEqual(cm.exception.code, 2)
     self.assertTrue("Is alive: False" in std_output)
+
+    # --call
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATD+33601020304;\r\n'}, {'OUT': b'OK\r\n'},
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--call', '+33601020304', 'false']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Calling +33601020304 in normal mode..." in std_output)
+    self.assertTrue("Call picked up: True" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CHUP\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATD#31#+33601020304;\r\n'}, {'OUT': b'ERROR\r\n'},
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--call', '+33601020304', 'true', '10']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("Calling +33601020304 in invisible mode..." in std_output)
+    self.assertTrue("Call picked up: False" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--call', '', 'true', '10']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("[ERROR] You must specify a valid phone number" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--call']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("[ERROR] You must specify a phone number to call" in std_output)
 
   @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_help(self):
