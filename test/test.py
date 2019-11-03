@@ -284,6 +284,15 @@ class TestGSMTC35(unittest.TestCase):
     self.assertEqual(cm.exception.code, 2)
     self.assertTrue("SMS sent: False" in std_output)
 
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--sendSMS', '+33601020304']))
+    self.assertEqual(cm.exception.code, 1)
+    self.assertTrue("[ERROR] You need to specify the phone number and the message" in std_output)
+
     # --sendEncodedSMS
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
       {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
@@ -311,6 +320,15 @@ class TestGSMTC35(unittest.TestCase):
     self.assertEqual(cm.exception.code, 2)
     self.assertTrue("SMS encoded sent: False" in std_output)
 
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--sendEncodedSMS', '+33601020304']))
+    self.assertEqual(cm.exception.code, 1)
+    self.assertTrue("[ERROR] You need to specify the phone number and the message" in std_output)
+
     # --sendTextModeSMS
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
       {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
@@ -331,6 +349,44 @@ class TestGSMTC35(unittest.TestCase):
         GSMTC35.main((['--serialPort', 'COM_FAKE', '--sendTextModeSMS', '+33601020304', 'Test message']))
     self.assertEqual(cm.exception.code, 2)
     self.assertTrue("SMS sent using Text Mode: False" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--sendTextModeSMS', '+33601020304']))
+    self.assertEqual(cm.exception.code, 1)
+    self.assertTrue("[ERROR] You need to specify the phone number and the message" in std_output)
+
+    # --deleteSMS
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGL=4\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--deleteSMS', 'ALL']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("SMS deleted: True" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGL=4\r\n'},
+      {'OUT': b'+CMGL: 9,0,,39\r\n'},
+      {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+      {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CMGD=9\r\n'}, {'OUT': b'ERROR\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--deleteSMS', 'ALL']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("SMS deleted: False" in std_output)
 
   @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_help(self):
