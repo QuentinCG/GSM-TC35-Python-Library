@@ -2420,7 +2420,7 @@ class GSMTC35:
     for forward in forwards:
       enabled_status = ""
       _class = ""
-      if len(forward) > 8 or forward[:7] == "+CCFC: ":
+      if len(forward) > 8 and forward[:7] == "+CCFC: ":
         forward = forward[7:]
         # Split remaining data from the line
         split_list = forward.split(",")
@@ -2437,7 +2437,7 @@ class GSMTC35:
         else:
           logging.warning("Impossible to parse forward information \""+forward+"\"")
       else:
-        loggging.warning("Impossible to get forward from \""+forward+"\" line")
+        logging.warning("Impossible to get forward from \""+forward+"\" line")
 
     return result
 
