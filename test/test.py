@@ -124,9 +124,10 @@ class TestGSMTC35(unittest.TestCase):
   """
   TODO: Explanation of the class + functions
   """
+  # TODO: Add missing command requests
   @patch('serial.Serial', new=MockSerial)
-  def test_fail_cmd(self):
-    logging.debug("test_fail_cmd")
+  def test_all_cmd_request_except_help_cmd(self):
+    logging.debug("test_all_cmd_request_except_help_cmd")
     # Request failed because nothing requested
     with self.assertRaises(SystemExit) as cm:
       with CapturingStdOut() as std_output:
@@ -147,8 +148,25 @@ class TestGSMTC35(unittest.TestCase):
     self.assertNotEqual(cm.exception.code, 0)
     self.assertTrue("[ERROR] option --undefinedargument not recognized" in std_output)
 
-  @patch('serial.Serial', new=MockSerial)
-  def test_success_cmd(self):
+    # Impossible to get pin status
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: UNDEFINED\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("[ERROR] Failed to check PIN status" in std_output)
+
+    # PIN still needed (should never happen but safeguard)
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: SIM PIN\r\n'}, {'OUT': b'OK\r\n'}    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("[ERROR] SIM PIN is needed" in std_output)
+
     # --isAlive
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
       {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
@@ -159,6 +177,15 @@ class TestGSMTC35(unittest.TestCase):
         GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
     self.assertEqual(cm.exception.code, 0)
     self.assertTrue("Is alive: True" in std_output)
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT\r\n'}, {'OUT': b'ERROR\r\n'},
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("Is alive: False" in std_output)
 
   @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_help(self):
