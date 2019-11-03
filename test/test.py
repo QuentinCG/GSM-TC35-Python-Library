@@ -1030,7 +1030,40 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT^SLCD\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertEqual(gsm.getLastCallDuration(), -1)
 
-  # TODO: test_all_get_current_call_state
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_current_call_state(self):
+    logging.debug("test_all_get_current_call_state")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.NOCALL, ''))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: 1,1,5,0,0,"+33601020304",145\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.WAITING, '+33601020304'))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: 1,1,4,0,0,"+33601020304",145\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.INCOMING, '+33601020304'))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: 1,1,3,0,0,"+33601020304",145\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.ALERTING, '+33601020304'))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: 1,1,2,0,0,"+33601020304",145\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.DIALING, '+33601020304'))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: 1,1,1,0,0,"+33601020304",145\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.HELD, '+33601020304'))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: 1,1,0,0,0,"+33601020304",145\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.ACTIVE, '+33601020304'))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: INVALID_LIST,A,B,C,D\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.NOCALL, ''))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: INVALID_LIST\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.NOCALL, ''))
+
   # TODO: test_all_set_forward_status
   # TODO: test_all_get_forward_status
   # TODO: test_all_lock_sim_pin
