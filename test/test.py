@@ -1360,7 +1360,7 @@ class TestGSMTC35(unittest.TestCase):
 
     # Error during waking up
     MockSerial.initializeMock([{'IN': b'AT\r\n'}])
-    self.assertEqual(gsm.waitEndOfSleepMode(max_additional_waiting_time_in_sec=0), (False, False, False, False, False))
+    self.assertEqual(gsm.waitEndOfSleepMode(max_additional_waiting_time_in_sec=1), (False, False, False, False, False))
 
   # TODO: Use "valid" local/international phone number in this test scenario (0601020304 or +33601020304, not 33601020304)
   @patch('serial.Serial', new=MockSerial)
