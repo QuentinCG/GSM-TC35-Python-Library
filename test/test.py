@@ -12,6 +12,7 @@ from unittest.mock import patch
 import logging
 import re
 import datetime
+import time
 
 class MockSerial:
   """
@@ -19,6 +20,7 @@ class MockSerial:
   """
   __is_open = True
   __read_write = []
+  __timestamp_begin_delay = None
 
   __default_serial_for_setup = [
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -48,12 +50,26 @@ class MockSerial:
   def inWaiting(self):
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'OUT' in MockSerial.__read_write[0]:
+        if 'wait_ms' in MockSerial.__read_write[0]:
+          if MockSerial.__timestamp_begin_delay == None:
+            MockSerial.__timestamp_begin_delay = 1000*time.time()
+          elif MockSerial.__timestamp_begin_delay + int(MockSerial.__read_write[0]['wait_ms']) > 1000*time.time():
+            return 0
+          else:
+            MockSerial.__timestamp_begin_delay = None
         return len(MockSerial.__read_write[0]['OUT'])
     return 0
 
   def read(self, dummy):
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'OUT' in MockSerial.__read_write[0]:
+        if 'wait_ms' in MockSerial.__read_write[0]:
+          if MockSerial.__timestamp_begin_delay == None:
+            MockSerial.__timestamp_begin_delay = 1000*time.time()
+          elif MockSerial.__timestamp_begin_delay + int(MockSerial.__read_write[0]['wait_ms']) > 1000*time.time():
+            return 0
+          else:
+            MockSerial.__timestamp_begin_delay = None
         val = MockSerial.__read_write[0]['OUT']
         MockSerial.__read_write.pop(0)
         return val
