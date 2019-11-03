@@ -1220,8 +1220,130 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CPWD="SC","1234","4321"\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.changePin(old_pin="1234", new_pin="4321"))
 
-  # TODO: test_all_is_in_sleep_mode
-  # TODO: test_all_sleep
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_is_in_sleep_mode(self):
+    logging.debug("test_all_is_in_sleep_mode")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # In real case scenario in sleep mode, the gsm doesn't answer anything
+    MockSerial.initializeMock([{'IN': b'AT+CFUN?\r\n'}])
+    self.assertTrue(gsm.isInSleepMode())
+
+    # In real case scenario in not sleep mode, the gsm answers "+CFUN: 1"
+    MockSerial.initializeMock([{'IN': b'AT+CFUN?\r\n'}, {'OUT': b'+CFUN: 1\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},])
+    self.assertFalse(gsm.isInSleepMode())
+
+    # This case should never happen but who knows (GSM answering it is sleeping)...
+    MockSerial.initializeMock([{'IN': b'AT+CFUN?\r\n'}, {'OUT': b'+CFUN: 0\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},])
+    self.assertTrue(gsm.isInSleepMode())
+
+    MockSerial.initializeMock([{'IN': b'AT+CFUN?\r\n'}, {'OUT': b'+CFUN: INVALID_RESPONSE\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},])
+    self.assertFalse(gsm.isInSleepMode())
+
+    MockSerial.initializeMock([{'IN': b'AT+CFUN?\r\n'}, {'OUT': b'+CFUN: \r\n'}])
+    self.assertFalse(gsm.isInSleepMode())
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_sleep(self):
+    logging.debug("test_all_sleep")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # Waiting call received
+    MockSerial.initializeMock([{'IN': b'AT+CLIP=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT\r\n'},
+                               {'OUT': b'+CLIP\r\n', 'wait_ms': 3000},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_call=True), (True, False, True, False, False))
+
+    # Waiting gsm alarm received
+    MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'+CCLK: 10/10/10,10:10:10\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CALA="10/10/10,10:10:21",0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT\r\n'},
+                               {'OUT': b'+CALA\r\n', 'wait_ms': 3000},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_timer_in_sec=10), (True, True, False, False, False))
+
+    # Waiting sms received
+    MockSerial.initializeMock([{'IN': b'AT+CNMI=1,1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT\r\n'},
+                               {'OUT': b'+CMTI\r\n', 'wait_ms': 3000},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_sms=True), (True, False, False, True, False))
+
+    # Waiting sms received
+    MockSerial.initializeMock([{'IN': b'AT^SCTM=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT\r\n'},
+                               {'OUT': b'^SCTM\r\n', 'wait_ms': 3000},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_temperature_warning=True), (True, False, False, False, True))
+
+    # Already alive
+    MockSerial.initializeMock([{'IN': b'AT\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.waitEndOfSleepMode(), (True, False, False, False, False))
+
+    # Waking up for unknown reason (slow)
+    MockSerial.initializeMock([])
+    self.assertEqual(gsm.sleep(), (False, False, False, False, False))
+
+    # No wake up specified
+    MockSerial.initializeMock([{'IN': b'AT\r\n'}, {'OUT': b'HEY THERE, I\'M UP!\r\n', 'wait_ms': 3000},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.sleep(), (False, False, False, False, False))
+
+    # Error while setting up wake up request
+    MockSerial.initializeMock([{'IN': b'AT^SCTM=1\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_temperature_warning=True), (False, False, False, False, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CNMI=1,1\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_sms=True), (False, False, False, False, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CLIP=1\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_call=True), (False, False, False, False, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CNMI=1,1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_sms=10), (False, False, False, False, False))
 
   # TODO: Use "valid" local/international phone number in this test scenario (0601020304 or +33601020304, not 33601020304)
   @patch('serial.Serial', new=MockSerial)
