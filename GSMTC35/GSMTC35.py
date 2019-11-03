@@ -3192,8 +3192,12 @@ def main(parsed_args = sys.argv[1:]):
         msg = args[1].encode().decode('utf-8')
       except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
         pass
-      print("SMS sent: "+str(gsm.sendSMS(str(args[0]), msg)))
-      sys.exit(0)
+      result = gsm.sendSMS(str(args[0]), msg)
+      print("SMS sent: "+str(result))
+      if result:
+        sys.exit(0)
+      else:
+        sys.exit(2)
 
     elif o in ("-m", "--sendEncodedSMS"):
       if len(args) < 2:
@@ -3204,8 +3208,12 @@ def main(parsed_args = sys.argv[1:]):
       except (AttributeError, UnicodeEncodeError, UnicodeDecodeError):
         print("[ERROR] Failed to decode (in UTF-8) your hexadecimal encoded message")
         sys.exit(1)
-      print("SMS encoded sent: "+str(gsm.sendSMS(str(args[0]), decoded_content)))
-      sys.exit(0)
+      result = gsm.sendSMS(str(args[0]), decoded_content)
+      print("SMS encoded sent: "+str(result))
+      if result:
+        sys.exit(0)
+      else:
+        sys.exit(2)
 
     elif o in ("-e", "--sendTextModeSMS"):
       if len(args) < 2:
@@ -3217,8 +3225,12 @@ def main(parsed_args = sys.argv[1:]):
         msg = args[1].encode().decode('utf-8')
       except AttributeError:
         pass
-      print("SMS sent using Text Mode: "+str(gsm.sendSMS(str(args[0]), msg, True)))
-      sys.exit(0)
+      result = gsm.sendSMS(str(args[0]), msg, True)
+      print("SMS sent using Text Mode: "+str(result))
+      if result:
+        sys.exit(0)
+      else:
+        sys.exit(2)
 
     elif o in ("-d", "--deleteSMS"):
       if len(args) < 1:
@@ -3226,8 +3238,12 @@ def main(parsed_args = sys.argv[1:]):
         print("[ERROR] Possible values: index of the SMS, \""+str(GSMTC35.eSMS.ALL_SMS)+"\", \""
               +str(GSMTC35.eSMS.UNREAD_SMS)+"\" and \""+str(GSMTC35.eSMS.READ_SMS)+"\"")
         sys.exit(1)
-      print("SMS deleted: "+str(gsm.deleteSMS(str(args[0]))))
-      sys.exit(0)
+      result = gsm.deleteSMS(str(args[0]))
+      print("SMS deleted: "+str(result))
+      if result:
+        sys.exit(0)
+      else:
+        sys.exit(2)
 
     elif o in ("-g", "--getSMS"):
       if len(args) < 1:
@@ -3290,8 +3306,12 @@ def main(parsed_args = sys.argv[1:]):
 
     elif o in ("-n", "--pickUpCall"):
       print("Picking up call...")
-      print("Pick up call: "+str(gsm.pickUpCall()))
-      sys.exit(0)
+      result = gsm.pickUpCall()
+      print("Pick up call: "+str(result))
+      if result:
+        sys.exit(0)
+      else:
+        sys.exit(2)
 
     elif o in ("-i", "--isSomeoneCalling"):
       result = gsm.isSomeoneCalling()
