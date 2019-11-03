@@ -1064,7 +1064,46 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CLCC\r\n'}, {'OUT': b'+CLCC: INVALID_LIST\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getCurrentCallState(), (GSMTC35.GSMTC35.eCall.NOCALL, ''))
 
-  # TODO: test_all_set_forward_status
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_set_forward_status(self):
+    logging.debug("test_all_set_forward_status")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,3,+33601020304,145,1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.GSMTC35.eForwardClass.VOICE, True, "+33601020304"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,4,,,1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.GSMTC35.eForwardClass.VOICE, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=1,4,,,2\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.MOBILE_BUSY, GSMTC35.GSMTC35.eForwardClass.DATA, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=2,4,,,4\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.NO_REPLY, GSMTC35.GSMTC35.eForwardClass.FAX, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=3,4,,,8\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.NOT_REACHABLE, GSMTC35.GSMTC35.eForwardClass.SMS, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=4,4,,,16\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.ALL_CALL_FORWARDING, GSMTC35.GSMTC35.eForwardClass.DATA_CIRCUIT_SYNC, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=5,4,,,32\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.ALL_CONDITIONAL_CALL_FORWARDING, GSMTC35.GSMTC35.eForwardClass.DATA_CIRCUIT_ASYNC, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=5,4,,,64\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.ALL_CONDITIONAL_CALL_FORWARDING, GSMTC35.GSMTC35.eForwardClass.DEDICATED_PACKED_ACCESS, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=5,4,,,128\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.ALL_CONDITIONAL_CALL_FORWARDING, GSMTC35.GSMTC35.eForwardClass.DEDICATED_PAD_ACCESS, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,3,+33601020304,145,1\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.GSMTC35.eForwardClass.VOICE, True, "+33601020304"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCFC=0,4,,,1\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.setForwardStatus(GSMTC35.GSMTC35.eForwardReason.UNCONDITIONAL, GSMTC35.GSMTC35.eForwardClass.VOICE, False))
+
   # TODO: test_all_get_forward_status
   # TODO: test_all_lock_sim_pin
   # TODO: test_all_unlock_sim_pin
