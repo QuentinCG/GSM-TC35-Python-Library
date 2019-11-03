@@ -2592,7 +2592,10 @@ class GSMTC35:
       return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
     # Wait until any element arrive from buffer to stop the sleep mode (or timeout)
-    data = self.__getNotEmptyLine(additional_timeout=3600)
+    time_to_wait = 3600
+    if time_to_wait > 0:
+      time_to_wait = max_waiting_time_in_sec
+    data = self.__getNotEmptyLine(additional_timeout=time_to_wait)
 
     if len(data) > 0:
       # At least one character was received (it means sleep mode is not active anymore)
@@ -2612,7 +2615,7 @@ class GSMTC35:
 
       return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
     else:
-      if max_waiting_time_in_sec < 0:
+      if max_waiting_time_in_sec <= 0:
         # Retry indefinitly until it wakes up
         return self.waitUntilWakeUp(-1)
       else:
