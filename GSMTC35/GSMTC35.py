@@ -2572,19 +2572,72 @@ class GSMTC35:
 
     return False
 
+  def waitEndOfSleepMode(self, max_waiting_time_in_sec=-1):
+    """Blocking until module wakes-up or timeout
+
+    Keyword arguments:
+      max_waiting_time_in_sec -- (int, default: -1) Max time to wait module to wake up (-1 for indefinitly)
+
+    return: (bool, bool, bool, bool, bool) Sleep is now finished, Waked-up by timer,
+                                           Waked-up by call, Waked-up by SMS, Waked-up by temperature
+                                           (Waked up flags are not relevant if non blocking)
+    """
+    gsm_waked_up_by_alarm = False
+    gsm_waked_up_by_call = False
+    gsm_waked_up_by_sms = False
+    gsm_waked_up_by_temperature = False
+
+    # Check if GSM really sleeping before waiting indefinitly
+    if self.isAlive():
+      return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+
+    # Wait until any element arrive from buffer to stop the sleep mode (or timeout)
+    data = self.__getNotEmptyLine(additional_timeout=3600)
+
+    if len(data) > 0:
+      # At least one character was received (it means sleep mode is not active anymore)
+      if len(data) >= 5:
+        wakeup_type = data[:5]
+        if wakeup_type == "+CMTI":
+          gsm_waked_up_by_sms = True
+        elif wakeup_type == "+CLIP" or wakeup_type == "RING":
+          gsm_waked_up_by_call = True
+        elif wakeup_type == "^SCTM":
+          gsm_waked_up_by_temperature = True
+        elif wakeup_type == "+CALA":
+          gsm_waked_up_by_alarm = True
+
+      # Set to asynchronous element to default state
+      self.__disableAsynchronousTriggers()
+
+      return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
+    else:
+      if max_waiting_time_in_sec < 0:
+        # Retry indefinitly until it wakes up
+        return self.waitUntilWakeUp(-1)
+      else:
+        logging.warning("Module still sleeping after timeout")
+
+    return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
   def sleep(self, wake_up_with_timer_in_sec=-1, wake_up_with_call=False,
-            wake_up_with_sms=False, wake_up_with_temperature_warning=False):
-    """Blocking sleep until a specific action occurs (enter low power mode)
+            wake_up_with_sms=False, wake_up_with_temperature_warning=False,
+            blocking=True, max_waiting_time_in_sec=-1):
+    """Putting module in sleep mode until a specific action occurs (enter low power mode)
+       Blocking or non blocking that it also wakes up
 
     Keyword arguments:
       wake_up_with_timer_in_sec -- (int) Time before waking-up the module (in sec), -1 to not use timer
       wake_up_with_call -- (bool) Wake-up the module if a call is received
       wake_up_with_sms -- (bool) Wake-up the module if a SMS is received
       wake_up_with_temperature_warning -- (bool) Wake-up the module too high or too low
+      blocking -- (bool, default: True) Wait the module wakes up
+      max_waiting_time_in_sec -- (int, default: -1) Max time to wait module to wake up (-1 for indefinitly),
+                                                    not taken into account if non blocking
 
     return: (bool, bool, bool, bool, bool) Sleep was entered and is now finished, Waked-up by timer,
                                            Waked-up by call, Waked-up by SMS, Waked-up by temperature
+                                           (Waked up flags are not relevant if non blocking)
     """
     min_alarm_sec = 10
     gsm_waked_up_by_alarm = False
@@ -2631,29 +2684,10 @@ class GSMTC35:
       self.__disableAsynchronousTriggers()
       return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
-    # Wait until a trigger stops the sleep mode
-    while True:
-      # Wait any element to arrive from buffer (means sleep mode not
-      data = self.__getNotEmptyLine(additional_timeout=3600)
+    if blocking:
+      return self.waitEndOfSleepMode(max_waiting_time_in_sec)
 
-      # At least one character was received (it means sleep mode is not active anymore)
-      if len(data) > 0:
-        if len(data) >= 5:
-          wakeup_type = data[:5]
-          if wakeup_type == "+CMTI":
-            gsm_waked_up_by_sms = True
-          elif wakeup_type == "+CLIP" or wakeup_type == "RING":
-            gsm_waked_up_by_call = True
-          elif wakeup_type == "^SCTM":
-            gsm_waked_up_by_temperature = True
-          elif wakeup_type == "+CALA":
-            gsm_waked_up_by_alarm = True
-
-      # Set to asynchronous element to default state
-      self.__disableAsynchronousTriggers()
-
-      return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
-
+    return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
 ################################# HELP FUNCTION ################################
 def __help(func="", filename=__file__):
