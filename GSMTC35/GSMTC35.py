@@ -542,8 +542,11 @@ class GSMTC35:
         if len(error_result) > 0 and (str(error_result) == str(line)):
           logging.error("GSM module returned error \""+str(error_result)+"\"")
           return ""
-        if (content in line) and len(line) > 0:
+        elif (content in line) and len(line) > 0:
           return line
+        elif len(line) < 0:
+          logging.error("Serial port is not working correctly (saying data is in buffer but nothing received?!)")
+          break
       # Wait 100ms if no data in the serial buffer
       time.sleep(.100)
     logging.error("Impossible to get line containing \""+str(content)+"\" on time")
@@ -2572,11 +2575,11 @@ class GSMTC35:
 
     return False
 
-  def waitEndOfSleepMode(self, max_waiting_time_in_sec=-1):
+  def waitEndOfSleepMode(self, max_additional_waiting_time_in_sec=-1):
     """Blocking until module wakes-up or timeout
 
     Keyword arguments:
-      max_waiting_time_in_sec -- (int, default: -1) Max time to wait module to wake up (-1 for indefinitly)
+      max_additional_waiting_time_in_sec -- (int, default: -1) Max time to wait module to wake up (-1 for indefinitly)
 
     return: (bool, bool, bool, bool, bool) Sleep is now finished, Waked-up by timer,
                                            Waked-up by call, Waked-up by SMS, Waked-up by temperature
@@ -2593,8 +2596,8 @@ class GSMTC35:
 
     # Wait until any element arrive from buffer to stop the sleep mode (or timeout)
     time_to_wait = 3600
-    if time_to_wait > 0:
-      time_to_wait = max_waiting_time_in_sec
+    if max_additional_waiting_time_in_sec > 0:
+      time_to_wait = max_additional_waiting_time_in_sec
     data = self.__getNotEmptyLine(additional_timeout=time_to_wait)
 
     if len(data) > 0:
@@ -2615,9 +2618,9 @@ class GSMTC35:
 
       return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
     else:
-      if max_waiting_time_in_sec <= 0:
+      if max_additional_waiting_time_in_sec <= 0:
         # Retry indefinitly until it wakes up
-        return self.waitUntilWakeUp(-1)
+        return self.waitEndOfSleepMode(-1)
       else:
         logging.warning("Module still sleeping after timeout")
 
@@ -2625,7 +2628,7 @@ class GSMTC35:
 
   def sleep(self, wake_up_with_timer_in_sec=-1, wake_up_with_call=False,
             wake_up_with_sms=False, wake_up_with_temperature_warning=False,
-            blocking=True, max_waiting_time_in_sec=-1):
+            blocking=True, max_additional_waiting_time_in_sec=-1):
     """Putting module in sleep mode until a specific action occurs (enter low power mode)
        Blocking or non blocking that it also wakes up
 
@@ -2635,7 +2638,7 @@ class GSMTC35:
       wake_up_with_sms -- (bool) Wake-up the module if a SMS is received
       wake_up_with_temperature_warning -- (bool) Wake-up the module too high or too low
       blocking -- (bool, default: True) Wait the module wakes up
-      max_waiting_time_in_sec -- (int, default: -1) Max time to wait module to wake up (-1 for indefinitly),
+      max_additional_waiting_time_in_sec -- (int, default: -1) Max time to wait module to wake up (-1 for indefinitly),
                                                     not taken into account if non blocking
 
     return: (bool, bool, bool, bool, bool) Sleep was entered and is now finished, Waked-up by timer,
@@ -2688,7 +2691,7 @@ class GSMTC35:
       return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
     if blocking:
-      return self.waitEndOfSleepMode(max_waiting_time_in_sec)
+      return self.waitEndOfSleepMode(max_additional_waiting_time_in_sec)
 
     return True, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
