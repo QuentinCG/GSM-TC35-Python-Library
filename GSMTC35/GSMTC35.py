@@ -3325,23 +3325,7 @@ def main(parsed_args = sys.argv[1:]):
       print("List of stored operators: "+operators)
 
       call_state, phone_number = gsm.getCurrentCallState()
-      str_call_state = ""
-      if call_state == GSMTC35.eCall.NOCALL:
-        str_call_state = "No call"
-      elif call_state == GSMTC35.eCall.ACTIVE:
-        str_call_state = "Call in progress"
-      elif call_state == GSMTC35.eCall.HELD:
-        str_call_state = "Held call"
-      elif call_state == GSMTC35.eCall.DIALING:
-        str_call_state = "Dialing in progress"
-      elif call_state == GSMTC35.eCall.ALERTING:
-        str_call_state = "Alerting"
-      elif call_state == GSMTC35.eCall.INCOMING:
-        str_call_state = "Incoming call (waiting you to pick it up)"
-      elif call_state == GSMTC35.eCall.WAITING:
-        str_call_state = "Waiting other phone to pick-up"
-      else:
-        str_call_state = "Can't get the state"
+      str_call_state = GSMTC35.eCallToString(call_state)
 
       if phone_number != "":
         print("Call status: "+str(str_call_state)+" (phone number: "+str(phone_number)+")")
