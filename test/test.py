@@ -1255,6 +1255,12 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
     self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
+    # Not waiting gsm to wake up
+    MockSerial.initializeMock([{'IN': b'AT+CLIP=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_call=True, blocking=False), (True, False, False, False, False))
+
     # Waiting call received
     MockSerial.initializeMock([{'IN': b'AT+CLIP=1\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -1304,7 +1310,7 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.waitEndOfSleepMode(), (True, False, False, False, False))
 
-    # Waking up for unknown reason (slow)
+    # Invalid parameters
     MockSerial.initializeMock([])
     self.assertEqual(gsm.sleep(), (False, False, False, False, False))
 
@@ -1344,6 +1350,17 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
                                ])
     self.assertEqual(gsm.sleep(wake_up_with_sms=10), (False, False, False, False, False))
+
+    MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CLIP=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CNMI=0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT^SCTM=0\r\n'}, {'OUT': b'OK\r\n'}
+                               ])
+    self.assertEqual(gsm.sleep(wake_up_with_timer_in_sec=10), (False, False, False, False, False))
+
+    # Error during waking up
+    MockSerial.initializeMock([{'IN': b'AT\r\n'}])
+    self.assertEqual(gsm.waitEndOfSleepMode(max_additional_waiting_time_in_sec=0), (False, False, False, False, False))
 
   # TODO: Use "valid" local/international phone number in this test scenario (0601020304 or +33601020304, not 33601020304)
   @patch('serial.Serial', new=MockSerial)
