@@ -3169,6 +3169,7 @@ def main(parsed_args = sys.argv[1:]):
           sys.exit(2)
         else:
           print("[ERROR] You must specify a valid phone number")
+          sys.exit(2)
       else:
         print("[ERROR] You must specify a phone number to call")
         sys.exit(2)
