@@ -14,6 +14,23 @@ import re
 import datetime
 import time
 
+try:
+  from StringIO import StringIO
+except ImportError:
+  from io import StringIO
+
+import sys
+
+class CapturingStdOut(list):
+  def __enter__(self):
+    self._stdout = sys.stdout
+    sys.stdout = self._stringio = StringIO()
+    return self
+  def __exit__(self, *args):
+    self.extend(self._stringio.getvalue().splitlines())
+    del self._stringio    # free up some memory
+    sys.stdout = self._stdout
+
 class MockSerial:
   """
   TODO: Explanation of the class + functions
@@ -107,20 +124,43 @@ class TestGSMTC35(unittest.TestCase):
   """
   TODO: Explanation of the class + functions
   """
-  # TODO: Add more case and use mock
+  @patch('serial.Serial', new=MockSerial)
   def test_fail_cmd(self):
     logging.debug("test_fail_cmd")
     # Request failed because nothing requested
     with self.assertRaises(SystemExit) as cm:
-      GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678', '--nodebug', '--debug']))
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--baudrate', '115200', '--serialPort', 'COM_Invalid', '--pin', '1234', '--puk', '12345678', '--pin2', '1234', '--puk2', '12345678', '--nodebug', '--debug']))
     self.assertNotEqual(cm.exception.code, 0)
+    self.assertTrue("Debugging..." in std_output)
+    self.assertTrue("Baudrate: 115200" in std_output)
+    self.assertTrue("Serial port: COM_Invalid" in std_output)
+    self.assertTrue("PIN: 1234" in std_output)
+    self.assertTrue("PUK: 12345678" in std_output)
+    self.assertTrue("PIN2: 1234" in std_output)
+    self.assertTrue("PUK2: 12345678" in std_output)
 
     # Request failed because invalid argument
     with self.assertRaises(SystemExit) as cm:
-      GSMTC35.main((['--undefinedargument']))
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--undefinedargument']))
     self.assertNotEqual(cm.exception.code, 0)
+    self.assertTrue("[ERROR] option --undefinedargument not recognized" in std_output)
 
-  # TODO: Add more case and use mock
+  @patch('serial.Serial', new=MockSerial)
+  def test_success_cmd(self):
+    # --isAlive
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT\r\n'}, {'OUT': b'OK\r\n'},
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isAlive']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Is alive: True" in std_output)
+
+  @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_help(self):
     logging.debug("test_all_cmd_help")
     # No paramaters
