@@ -1521,7 +1521,7 @@ class GSMTC35:
     result = self.__sendCmdAndGetNotEmptyLine(cmd=GSMTC35.__NORMAL_AT+"CSQ",
                                               content="+CSQ: ")
     #Check result:
-    if result == "" or len(result) <= 7 or result[:6] != "+CSQ: ":
+    if result == "" or len(result) <= 8 or result[:6] != "+CSQ: ":
       logging.error("Command to get signal strength failed")
       return sig_strength
 
@@ -1529,10 +1529,8 @@ class GSMTC35:
     result = result[6:]
 
     # Split remaining data from the line
+    # (at least one element is in it due to previous check)
     split_list = result.split(",")
-    if len(split_list) < 1:
-      logging.error("Impossible to split signal strength")
-      return sig_strength
 
     # Get the received signal strength (1st element)
     try:
@@ -2679,7 +2677,7 @@ class GSMTC35:
         return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
 
     if wake_up_with_timer_in_sec >= min_alarm_sec:
-      if not self.__addAlarmAsAChrono(wake_up_with_timer_in_sec + 1): # Add one sec (due to query time)
+      if not self.__addAlarmAsAChrono(wake_up_with_timer_in_sec + 1, "SLEEP"): # Add one sec (due to query time)
         logging.error("Impossible to enable the wake up with alarm")
         self.__disableAsynchronousTriggers()
         return False, gsm_waked_up_by_alarm, gsm_waked_up_by_call, gsm_waked_up_by_sms, gsm_waked_up_by_temperature
