@@ -42,9 +42,9 @@ class CapturingStdOut(list):
 class MockSerial:
   """
   Simulate Serial port to:
-    - Verify data sent by the library to the serial port
-    - Send response from the serial port
-    - Simulate serial port delay
+    - Verify data sent by the library to the serial port (regex or strict comparison)
+    - Send data from the serial port to the library
+    - Simulate serial port delay while sending data from the serial port to the library
   """
   __is_open = True
   __read_write = []
@@ -1764,6 +1764,39 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT\r\n'}])
     self.assertEqual(gsm.waitEndOfSleepMode(max_additional_waiting_time_in_sec=1), (False, False, False, False, False))
 
+  def test_all_enum_conversion(self):
+    logging.debug("test_all_enum_conversion")
+
+    # eCallToString
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.NOCALL), "NOCALL")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.ACTIVE), "ACTIVE")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.HELD), "HELD")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.DIALING), "DIALING")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.ALERTING), "ALERTING")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.INCOMING), "INCOMING")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(GSMTC35.GSMTC35.eCall.WAITING), "WAITING")
+    self.assertEqual(GSMTC35.GSMTC35.eCallToString(-98), "UNDEFINED")
+
+    # eForwardClassToString
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.VOICE), "VOICE")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.DATA), "DATA")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.FAX), "FAX")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.SMS), "SMS")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.DATA_CIRCUIT_SYNC), "DATA_CIRCUIT_SYNC")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.DATA_CIRCUIT_ASYNC), "DATA_CIRCUIT_ASYNC")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.DEDICATED_PACKED_ACCESS), "DEDICATED_PACKED_ACCESS")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(GSMTC35.GSMTC35.eForwardClass.DEDICATED_PAD_ACCESS), "DEDICATED_PAD_ACCESS")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardClassToString(-456), "UNDEFINED")
+
+    # eForwardReasonToString
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(GSMTC35.GSMTC35.eForwardReason.UNCONDITIONAL), "UNCONDITIONAL")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(GSMTC35.GSMTC35.eForwardReason.MOBILE_BUSY), "MOBILE_BUSY")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(GSMTC35.GSMTC35.eForwardReason.NO_REPLY), "NO_REPLY")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(GSMTC35.GSMTC35.eForwardReason.NOT_REACHABLE), "NOT_REACHABLE")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(GSMTC35.GSMTC35.eForwardReason.ALL_CALL_FORWARDING), "ALL_CALL_FORWARDING")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(GSMTC35.GSMTC35.eForwardReason.ALL_CONDITIONAL_CALL_FORWARDING), "ALL_CONDITIONAL_CALL_FORWARDING")
+    self.assertEqual(GSMTC35.GSMTC35.eForwardReasonToString(-589), "UNDEFINED")
+
   @patch('serial.Serial', new=MockSerial)
   def test_success_send_sms_7bit(self):
     logging.debug("test_success_send_sms_7bit")
@@ -1823,7 +1856,6 @@ class TestGSMTC35(unittest.TestCase):
   # TODO: test_success_get_sms_all_mode
   # TODO: test_failed_get_sms_all_mode
   # TODO: test_all_delete_sms
-  # TODO: Enum convertion (eForwardReasonToString, eForwardClassToString, eCallToString)
 
 if __name__ == '__main__':
   logger = logging.getLogger()
