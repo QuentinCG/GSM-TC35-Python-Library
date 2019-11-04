@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-  Automatic test of GSMTC35 library (not complete and without MOCK => not perfect at all)
-  Feel free to create mock test for better unit-test.
+  Automatic test of GSMTC35 library with fake serial port (using a Mock) and
+  getting stdout with a specific class.
 """
 
 import unittest
@@ -13,15 +13,23 @@ import logging
 import re
 import datetime
 import time
+import sys
 
+# Python 2.7/3 compatibility
 try:
   from StringIO import StringIO
 except ImportError:
   from io import StringIO
 
-import sys
-
 class CapturingStdOut(list):
+  """
+  Capture stdout and give it back into a variable.
+
+  Example:
+  with CapturingStdOut() as std_output:
+    anyFunctionHere()
+  print(std_output)
+  """
   def __enter__(self):
     self._stdout = sys.stdout
     sys.stdout = self._stringio = StringIO()
@@ -33,7 +41,10 @@ class CapturingStdOut(list):
 
 class MockSerial:
   """
-  TODO: Explanation of the class + functions
+  Simulate Serial port to:
+    - Verify data sent by the library to the serial port
+    - Send response from the serial port
+    - Simulate serial port delay
   """
   __is_open = True
   __read_write = []
@@ -54,10 +65,21 @@ class MockSerial:
 
   @staticmethod
   def getDefaultConfigForSetup():
+    """Get configuration to use to have a working GSMTC35.setup()
+    """
     return MockSerial.__default_serial_for_setup + []
 
   @staticmethod
   def initializeMock(read_write, is_open = True):
+    """Initialize the Serial port mock
+
+    Keyword arguments:
+      read_write -- (list of any number of dict like this:
+                      - {'IN': b'data_sent_by_lib_here', 'mode'(optional): 'regex/strict_compare'}
+                      - {'OUT': b'data_sent_by_fake_gsm_module_here', 'wait_ms'(optional): Any_delay_here_as_uint}
+                    ) Data to simulate gsm module and verify data sent to gsm module by library
+      is_open -- (bool, default: True) Is module open ?
+    """
     MockSerial.__is_open = is_open
     MockSerial.__read_write = read_write
 
@@ -65,6 +87,10 @@ class MockSerial:
     return
 
   def inWaiting(self):
+    """Fake serial.inWaiting function
+    Will return 0 if no data to send (first element in read_write list not an 'OUT' or if the 'wait_ms' is not yet finished)
+    Else, will return length of the data to send.
+    """
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'OUT' in MockSerial.__read_write[0]:
         if 'wait_ms' in MockSerial.__read_write[0]:
@@ -78,13 +104,17 @@ class MockSerial:
     return 0
 
   def read(self, dummy):
+    """Fake serial.read function
+    Will return "" if no data to send (first element in read_write list not an 'OUT' or if the 'wait_ms' is not yet finished)
+    Else, will return the data to send.
+    """
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'OUT' in MockSerial.__read_write[0]:
         if 'wait_ms' in MockSerial.__read_write[0]:
           if MockSerial.__timestamp_begin_delay == None:
             MockSerial.__timestamp_begin_delay = 1000*time.time()
           elif MockSerial.__timestamp_begin_delay + int(MockSerial.__read_write[0]['wait_ms']) > 1000*time.time():
-            return 0
+            return ""
           else:
             MockSerial.__timestamp_begin_delay = None
         val = MockSerial.__read_write[0]['OUT']
@@ -93,6 +123,9 @@ class MockSerial:
     return ""
 
   def write(self, data):
+    """Fake serial.write function
+    Will throw an AssertionError if comparison between first element of read_write is not the same (or regex) as what was sent by the library
+    """
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'IN' in MockSerial.__read_write[0]:
         check_val = MockSerial.__read_write[0]['IN']
@@ -115,14 +148,20 @@ class MockSerial:
     return 0
 
   def isOpen(self):
+    """Fake serial.isOpen function
+    Will return is_open registered in initializeMock
+    """
     return MockSerial.__is_open
 
   def close(self):
+    """Fake serial.close function
+    Will return True all the time
+    """
     return True
 
 class TestGSMTC35(unittest.TestCase):
   """
-  TODO: Explanation of the class + functions
+  Test all the GSMTC35 class using fake serial port (MockSerial) and getting the std output (CapturingStdOut)
   """
 
   # TODO: Add missing command requests
