@@ -544,9 +544,6 @@ class GSMTC35:
           return ""
         elif (content in line) and len(line) > 0:
           return line
-        elif len(line) < 0:
-          logging.error("Serial port is not working correctly (saying data is in buffer but nothing received?!)")
-          break
       # Wait 100ms if no data in the serial buffer
       time.sleep(.100)
     logging.error("Impossible to get line containing \""+str(content)+"\" on time")
