@@ -586,6 +586,48 @@ class TestGSMTC35(unittest.TestCase):
     self.assertEqual(cm.exception.code, 0)
     self.assertTrue("Is someone calling: False" in std_output)
 
+    # --information
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CGMI\r\n'}, {'OUT': b'FAKE_MANUFACTURER\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CGMM\r\n'}, {'OUT': b'FAKE_MODEL\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CGMR\r\n'}, {'OUT': b'FAKE_REVISION\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CGSN\r\n'}, {'OUT': b'FAKE_IMEI\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CIMI\r\n'}, {'OUT': b'FAKE_IMSI\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+COPS=3,0\r\n'}, {'OUT': b'OK\r\n'}, {'IN': b'AT+COPS?\r\n'}, {'OUT': b'+COPS: 0,1,\"FAKE_OPERATOR\"\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: 60,USELESS\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CCLK?\r\n'}, {'OUT': b'+CCLK: 11/12/13,14:15:16\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SLCD\r\n'}, {'OUT': b'^SLCD: 12:34:56\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+COPN\r\n'}, {'OUT': b'+COPN: 1,\"FAKE1\"\r\n'}, {'OUT': b'+COPN: 2,\"FAKE 2\"\r\n'}, {'OUT': b'+COPN: 3,\"Fake Three\"\r\n'}, {'OUT': b'+COPN: DUMMY_ERROR\r\n'},{'OUT': b'DUMMY_ERROR\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CLCC\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^MONP\r\n'}, {'OUT': b'chann rs  dBm   PLMN   BCC C1 C2\r\n'}, {'OUT': b'504   18  -78   26203  1   27 28\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CACM?\r\n'}, {'OUT': b'+CACM: FF05\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CAMM?\r\n'}, {'OUT': b'+CAMM: FFFF\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT^SCTM?\r\n'}, {'OUT': b'^SCTM: DUMMY,0,OTHER_DUMMY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CFUN?\r\n'}, {'OUT': b'+CFUN: 1\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--information']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("GSM module Manufacturer ID: FAKE_MANUFACTURER" in std_output)
+    self.assertTrue("GSM module Model ID: FAKE_MODEL" in std_output)
+    self.assertTrue("GSM module Revision ID: FAKE_REVISION" in std_output)
+    self.assertTrue("Product serial number ID (IMEI): FAKE_IMEI" in std_output)
+    self.assertTrue("International Mobile Subscriber Identity (IMSI): FAKE_IMSI" in std_output)
+    self.assertTrue("Current operator: FAKE_OPERATOR" in std_output)
+    self.assertTrue("Signal strength: 7dBm" in std_output)
+    self.assertTrue("Date from internal clock: 2011-12-13 14:15:16" in std_output)
+    self.assertTrue("Last call duration: 45296sec" in std_output)
+    self.assertTrue("List of stored operators: FAKE1, FAKE 2, Fake Three" in std_output)
+    self.assertTrue("Call status: NOCALL" in std_output)
+    self.assertTrue("Neighbour cells: [{'chann': 504, 'rs': 18, 'dbm': -78, 'plmn': 26203, 'bcc': 1, 'c1': 27, 'c2': 28}]" in std_output)
+    self.assertTrue("Accumulated call meter: 65285 home units" in std_output)
+    self.assertTrue("Accumulated call meter max: 65535 home units" in std_output)
+    self.assertTrue("Is GSM module temperature critical: False" in std_output)
+    self.assertTrue("Is GSM module in sleep mode: False" in std_output)
+
   @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_help(self):
     logging.debug("test_all_cmd_help")
