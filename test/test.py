@@ -1219,6 +1219,9 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: WRONG,USELESS\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getSignalStrength(), -1)
 
+    MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'+CSQ: WRONG\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSignalStrength(), -1)
+
     MockSerial.initializeMock([{'IN': b'AT+CSQ\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertEqual(gsm.getSignalStrength(), -1)
 
@@ -1844,7 +1847,7 @@ class TestGSMTC35(unittest.TestCase):
 
     # Waiting gsm alarm received
     MockSerial.initializeMock([{'IN': b'AT+CCLK?\r\n'}, {'OUT': b'+CCLK: 10/10/10,10:10:10\r\n'}, {'OUT': b'OK\r\n'},
-                               {'IN': b'AT+CALA="10/10/10,10:10:21",0,0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CALA="10/10/10,10:10:21",0,0,"SLEEP"\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CFUN=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT\r\n'},
                                {'OUT': b'+CALA\r\n', 'wait_ms': 3000},
