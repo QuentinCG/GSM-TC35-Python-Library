@@ -522,6 +522,70 @@ class TestGSMTC35(unittest.TestCase):
     self.assertEqual(cm.exception.code, 1)
     self.assertTrue("[ERROR] You need to specify the type of SMS to get" in std_output)
 
+    # --pickUpCall
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATA;\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--pickUpCall']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Picking up call..." in std_output)
+    self.assertTrue("Pick up call: True" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'ATA;\r\n'}, {'OUT': b'ERROR\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--pickUpCall']))
+    self.assertEqual(cm.exception.code, 2)
+    self.assertTrue("Picking up call..." in std_output)
+    self.assertTrue("Pick up call: False" in std_output)
+
+    # --isSomeoneCalling
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 3\r\n'}, {'OUT': b'OK\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isSomeoneCalling']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Is someone calling: True" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 3\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isSomeoneCalling']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Is someone calling: True" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPAS\r\n'}, {'OUT': b'+CPAS: 4\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isSomeoneCalling']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Is someone calling: False" in std_output)
+
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup() + [
+      {'IN': b'AT+CPIN?\r\n'}, {'OUT': b'+CPIN: READY\r\n'}, {'OUT': b'OK\r\n'},
+      {'IN': b'AT+CPAS\r\n'}, {'OUT': b'ERROR\r\n'}
+    ])
+    with self.assertRaises(SystemExit) as cm:
+      with CapturingStdOut() as std_output:
+        GSMTC35.main((['--serialPort', 'COM_FAKE', '--isSomeoneCalling']))
+    self.assertEqual(cm.exception.code, 0)
+    self.assertTrue("Is someone calling: False" in std_output)
+
   @patch('serial.Serial', new=MockSerial)
   def test_all_cmd_help(self):
     logging.debug("test_all_cmd_help")
