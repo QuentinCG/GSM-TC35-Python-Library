@@ -2150,16 +2150,21 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
     self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
-    # One SMS: wanted to use PDU mode but not possible so using text mode (fallback)
+    # One 7 bits SMS: wanted to use PDU mode but not possible so using text mode (fallback)
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'ERROR\r\n'},
                                {'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0))
 
-    # One SMS in text mode
+    # One 7 bits SMS in text mode (< 70 bytes)
     MockSerial.initializeMock([{'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0, force_text_mode=True))
+
+    # One 7 bits SMS in text mode (> 70 bytes)
+    MockSerial.initializeMock([{'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS .......... .......... .......... .......... .......... .......... ..........\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS .......... .......... .......... .......... .......... .......... ..........", network_delay_sec=0, force_text_mode=True))
 
     # Multiple 7 bits SMS (NOT MMS because not possible) in text mode
     MockSerial.initializeMock([{'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode multiple SMS .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......\x1a$', 'mode': 'regex'},
@@ -2186,6 +2191,85 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_success_get_sms_all_type(self):
+    logging.debug("test_success_get_sms_7bit")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=0\r\n'},
+                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.UNREAD_SMS, waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=1\r\n'},
+                               {'OUT': b'+CMGL: 9,1,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.READ_SMS, waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC READ', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=2\r\n'},
+                               {'OUT': b'+CMGL: 9,2,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.UNSENT_SMS, waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'STO UNSENT', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=3\r\n'},
+                               {'OUT': b'+CMGL: 9,3,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.SENT_SMS, waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'STO SENT', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.ALL_SMS, waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=-546, waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type="4", waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=3\r\n'},
+                               {'OUT': b'+CMGL: 9,3,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type="3", waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'STO SENT', 'time': '10:37:32 GMT+1.0'}])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD', 'time': '10:37:32 GMT+1.0'}])
 
   # TODO: test_success_get_sms_7bit ([normal/extended], normal, multipart, GMT-)
   # TODO: test_failed_get_sms_7bit (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
