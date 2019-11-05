@@ -866,9 +866,25 @@ class TestGSMTC35(unittest.TestCase):
     self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
   def test_fail_use_serial_port(self):
+    logging.debug("test_fail_use_serial_port")
     # Do not use Mock on this test in order to trigger an error (Invalid serial port)
     gsm = GSMTC35.GSMTC35()
     self.assertFalse(gsm.setup(_port="COM_FAKE"))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_fail_send_get_data_through_serial_port(self):
+    logging.debug("test_fail_send_get_data_through_serial_port")
+    MockSerial.initializeMock([])
+    gsm = GSMTC35.GSMTC35()
+    self.assertFalse(gsm.isAlive())
+
+    MockSerial.initializeMock([])
+    gsm = GSMTC35.GSMTC35()
+    self.assertEqual(gsm.getManufacturerId(), "")
+
+    MockSerial.initializeMock([{'IN': b'AT+COPN\r\n'}])
+    gsm = GSMTC35.GSMTC35()
+    self.assertEqual(gsm.getOperatorNames(), [])
 
   @patch('serial.Serial', new=MockSerial)
   def test_success_pin_during_setup(self):
