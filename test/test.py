@@ -2143,8 +2143,50 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °"))
 
-  # TODO: test_success_send_sms_text_mode
-  # TODO: test_failed_send_sms_text_mode
+  @patch('serial.Serial', new=MockSerial)
+  def test_success_send_sms_text_mode(self):
+    logging.debug("test_success_send_sms_text_mode")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # One SMS: wanted to use PDU mode but not possible so using text mode (fallback)
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0))
+
+    # One SMS in text mode
+    MockSerial.initializeMock([{'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0, force_text_mode=True))
+
+    # Multiple 7 bits SMS (NOT MMS because not possible) in text mode
+    MockSerial.initializeMock([{'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode multiple SMS .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^...\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode multiple SMS .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........", network_delay_sec=0, force_text_mode=True))
+
+    # Multiple UCS2 SMS (NOT MMS because not possible) in text mode
+    MockSerial.initializeMock([{'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode multiple SMS\xc2\xb0 .......... .......... .......... .......... ..\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^........ ..........\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Text mode multiple SMS° .......... .......... .......... .......... .......... ..........", network_delay_sec=0, force_text_mode=True))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_failed_send_sms_text_mode(self):
+    logging.debug("test_failed_send_sms_text_mode")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGS="+33601020304"\r\n'}, {'IN': b'^Text mode SMS\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0))
+
   # TODO: test_success_get_sms_7bit ([normal/extended], normal, multipart, GMT-)
   # TODO: test_failed_get_sms_7bit (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
   # TODO: test_success_get_sms_ucs2 (normal, multipart)
