@@ -2030,13 +2030,13 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS=36\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F400001AC2F03C3D06DD40E2341D346D4E41657CB80D6797419B32\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €", network_delay_sec=0))
 
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=36\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F400001AC2F03C3D06DD40E2341D346D4E41657CB80D6797419B32\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €", network_delay_sec=0))
 
     # Multipart 7 bit SMS with extended alphabet
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -2045,20 +2045,20 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS=33\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000016050003[0-9A-F]{2}02025C2097CBE572B95C2E97ABE82402\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Multipart 7 bit SMS example €.......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........END"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Multipart 7 bit SMS example €.......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........END", network_delay_sec=0))
 
     # One part 7 bit SMS with base alphabet
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=34\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000017C2F03C3D06DD40E2341D346D4E41657CB80D679701\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example", network_delay_sec=0))
 
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=34\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000017C2F03C3D06DD40E2341D346D4E41657CB80D679701\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example", network_delay_sec=0))
 
     # Multipart 7 bit SMS with base alphabet
     # This test also check robustness of the lib when receiving dirty char without end of line
@@ -2068,7 +2068,7 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS=31\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000014050003[0-9A-F]{2}02025C2E97CBE572B95CAEA29308\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'', 'wait_ms': 3000}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Multipart 7 bit SMS example .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........END"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Multipart 7 bit SMS example .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........END", network_delay_sec=0))
 
   @patch('serial.Serial', new=MockSerial)
   def test_failed_send_sms_7bit(self):
@@ -2082,24 +2082,24 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS=36\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F400001AC2F03C3D06DD40E2341D346D4E41657CB80D6797419B32\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'ERROR\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €"))
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €", network_delay_sec=0))
 
     # Impossible to write data to serial port
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=36\r\n'}])
-    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €"))
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €", network_delay_sec=0))
 
     # Send empty SMS
     MockSerial.initializeMock([])
-    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg=""))
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="", network_delay_sec=0))
 
     # Send to empty phone number
     MockSerial.initializeMock([])
-    self.assertFalse(gsm.sendSMS(phone_number="", msg="Hi"))
+    self.assertFalse(gsm.sendSMS(phone_number="", msg="Hi", network_delay_sec=0))
 
     # No communication with GSM
     MockSerial.initializeMock([])
-    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Hi"))
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Hi", network_delay_sec=0))
 
   @patch('serial.Serial', new=MockSerial)
   def test_success_send_sms_ucs2(self):
@@ -2113,13 +2113,13 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS=45\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000820004E006F00740020003700620069007400200063006800610072003A002000B0\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 45\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °", network_delay_sec=0))
 
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=45\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000820004E006F00740020003700620069007400200063006800610072003A002000B0\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 45\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °", network_delay_sec=0))
 
     # Multipart UCS2 SMS
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
@@ -2128,7 +2128,7 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGS=37\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000818050003[0-9A-F]{2}0202002E002E002E002E002E002E0045004E0044\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
-    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °.......... ........ ........ ........ ........ ..........END"))
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °.......... ........ ........ ........ ........ ..........END", network_delay_sec=0))
 
   @patch('serial.Serial', new=MockSerial)
   def test_failed_send_sms_ucs2(self):
