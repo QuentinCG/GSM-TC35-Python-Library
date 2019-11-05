@@ -2045,9 +2045,10 @@ class TestGSMTC35(unittest.TestCase):
     self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example"))
 
     # Multipart 7 bit SMS with base alphabet
+    # This test also check robustness of the lib when receiving dirty char without end of line
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=140\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000091050003[0-9A-F]{2}02019A75363D0D0FCBE9A01B489CA683A6CD29A88C0FB7E1EC32C8E572B95C2E97CBE502B95C2E97CBE572B95C2097CBE572B95C2E970BE472B95C2E97CBE572815C2E97CBE572B95C2E90CBE572B95C2E97CB0572B95C2E97CBE572B9402E97CBE572B95C2E17C8E572B95C2E97CBE502B95C2E97CBE572B95C20\x1a$', 'mode': 'regex'},
-                               {'OUT': b'\r\n'}, {'OUT': b'>\r\n'}, {'OUT': b'OK\r\n'},
+                               {'OUT': b'\r\n'}, {'OUT': b'InvalidChar'}, {'OUT': b'', 'wait_ms': 3000}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGS=31\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000014050003[0-9A-F]{2}02025C2E97CBE572B95CAEA29308\x1a$', 'mode': 'regex'},
                                {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'', 'wait_ms': 3000}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
