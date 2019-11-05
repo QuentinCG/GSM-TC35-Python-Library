@@ -1914,6 +1914,9 @@ class GSMTC35:
     return: (bool) SMS sent
     """
     result = False
+    if len(msg) <= 0 or len(phone_number) <= 0:
+      logging.error("Message to send or phone number can't be empty")
+      return False
 
     using_text_mode = force_text_mode
     if not using_text_mode:
@@ -2016,14 +2019,14 @@ class GSMTC35:
       if msg_length > 70:
         if GSMTC35.__is7BitCompatible(msg):
           if msg_length > 140:
-            logging.warning("Message must be sent in multiple <=140 char SMS (not multipart SMS because Text Mode is used)")
+            logging.warning("Message will be sent in multiple <=140 char SMS (not multipart SMS because Text Mode is used)")
           else:
             logging.debug("SMS can be sent in one basic part")
         else:
-          logging.warning("Message must be sent in multiple <=70 char SMS (not multipart SMS because Text Mode is used)")
+          logging.warning("Message will be sent in multiple <=70 char SMS (not multipart SMS because Text Mode is used)")
           n = 70
       else:
-        logging.debug("SMS can be sent in one unicode part")
+        logging.debug("SMS can be sent in one unicode or basic part")
 
       # Sending all SMS
       all_sms_to_send = [msg[i:i+n] for i in range(0, len(msg), n)]
