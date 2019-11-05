@@ -50,7 +50,11 @@ class MockSerial:
   __read_write = []
   __timestamp_begin_delay = None
 
-  __default_serial_for_setup = [
+  @staticmethod
+  def getDefaultConfigForSetup():
+    """Get configuration to use to have a working GSMTC35.setup()
+    """
+    return [
       {'IN': b'AT+IPR=0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATE0\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'ATV1\r\n'}, {'OUT': b'OK\r\n'},
@@ -62,12 +66,6 @@ class MockSerial:
       {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
       {'IN': b'AT+IPR=115200\r\n'}, {'OUT': b'OK\r\n'}
     ]
-
-  @staticmethod
-  def getDefaultConfigForSetup():
-    """Get configuration to use to have a working GSMTC35.setup()
-    """
-    return MockSerial.__default_serial_for_setup + []
 
   @staticmethod
   def initializeMock(read_write, is_open = True):
@@ -82,6 +80,7 @@ class MockSerial:
     """
     MockSerial.__is_open = is_open
     MockSerial.__read_write = read_write
+    MockSerial.__timestamp_begin_delay = None
 
   def __init__(self, port="", baudrate="", parity="", stopbits="", bytesize="", timeout=""):
     return
@@ -89,38 +88,56 @@ class MockSerial:
   def inWaiting(self):
     """Fake serial.inWaiting function
     Will return 0 if no data to send (first element in read_write list not an 'OUT' or if the 'wait_ms' is not yet finished)
-    Else, will return length of the data to send.
+    Else, will return length of the 'OUT' data to send.
+
+    Note: If this function (or read()) is requested, the 'wait_ms' timer begins
     """
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'OUT' in MockSerial.__read_write[0]:
         if 'wait_ms' in MockSerial.__read_write[0]:
           if MockSerial.__timestamp_begin_delay == None:
-            MockSerial.__timestamp_begin_delay = 1000*time.time()
-          elif MockSerial.__timestamp_begin_delay + int(MockSerial.__read_write[0]['wait_ms']) > 1000*time.time():
+            MockSerial.__timestamp_begin_delay = 1000 * time.time()
+            logging.debug("Begining fake serial port delay of "+str(MockSerial.__read_write[0]['wait_ms'])+" seconds")
+            return 0
+          elif MockSerial.__timestamp_begin_delay + int(MockSerial.__read_write[0]['wait_ms']) > 1000 * time.time():
             return 0
           else:
-            MockSerial.__timestamp_begin_delay = None
-        return len(MockSerial.__read_write[0]['OUT'])
+            return len(MockSerial.__read_write[0]['OUT'])
+        else:
+          return len(MockSerial.__read_write[0]['OUT'])
+
     return 0
 
-  def read(self, dummy):
+  def read(self, size_to_read):
     """Fake serial.read function
-    Will return "" if no data to send (first element in read_write list not an 'OUT' or if the 'wait_ms' is not yet finished)
-    Else, will return the data to send.
+    Will return None if no data to send (first element in read_write list not an 'OUT')
+    Else, will return the requested number of bytes of 'OUT' data (or the integrality if too much requested) after the 'wait_ms' timer is finished
     """
     if MockSerial.__is_open and len(MockSerial.__read_write) > 0:
       if 'OUT' in MockSerial.__read_write[0]:
         if 'wait_ms' in MockSerial.__read_write[0]:
+          fake_delay = 0
           if MockSerial.__timestamp_begin_delay == None:
-            MockSerial.__timestamp_begin_delay = 1000*time.time()
+            MockSerial.__timestamp_begin_delay = 1000 * time.time()
+            fake_delay = int(MockSerial.__read_write[0]['wait_ms'])/1000
           elif MockSerial.__timestamp_begin_delay + int(MockSerial.__read_write[0]['wait_ms']) > 1000*time.time():
-            return ""
-          else:
-            MockSerial.__timestamp_begin_delay = None
-        val = MockSerial.__read_write[0]['OUT']
-        MockSerial.__read_write.pop(0)
-        return val
-    return ""
+            fake_delay = (int(MockSerial.__read_write[0]['wait_ms'])/1000) - ((1000*time.time() - MockSerial.__timestamp_begin_delay)/1000)
+
+          if fake_delay > 0:
+            logging.debug("Fake serial port delay of "+str(fake_delay)+" seconds in progress before sending data")
+            time.sleep(fake_delay)
+
+        if size_to_read < len(MockSerial.__read_write[0]['OUT']):
+          val = MockSerial.__read_write[0]['OUT'][:size_to_read]
+          MockSerial.__read_write[0]['OUT'] = MockSerial.__read_write[0]['OUT'][size_to_read:]
+          return val
+        else:
+          val = MockSerial.__read_write[0]['OUT']
+          MockSerial.__read_write.pop(0)
+          MockSerial.__timestamp_begin_delay = None
+          return val
+
+    return None
 
   def write(self, data):
     """Fake serial.write function
