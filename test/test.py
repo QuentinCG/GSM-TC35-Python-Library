@@ -2070,13 +2070,89 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Multipart 7 bit SMS example .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... ..........END"))
 
-  # TODO: test_failed_send_sms_7bit
-  # TODO: test_success_send_sms_ucs2
-  # TODO: test_failed_send_sms_ucs2
+  @patch('serial.Serial', new=MockSerial)
+  def test_failed_send_sms_7bit(self):
+    logging.debug("test_failed_send_sms_7bit")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # Error sent by GSM
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=36\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F400001AC2F03C3D06DD40E2341D346D4E41657CB80D6797419B32\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 59\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €"))
+
+    # Impossible to write data to serial port
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=36\r\n'}])
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Basic 7 bit SMS example €"))
+
+    # Send empty SMS
+    MockSerial.initializeMock([])
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg=""))
+
+    # Send to empty phone number
+    MockSerial.initializeMock([])
+    self.assertFalse(gsm.sendSMS(phone_number="", msg="Hi"))
+
+    # No communication with GSM
+    MockSerial.initializeMock([])
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Hi"))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_success_send_sms_ucs2(self):
+    logging.debug("test_success_send_sms_ucs2")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # One part UCS2 SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=45\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000820004E006F00740020003700620069007400200063006800610072003A002000B0\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 45\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=45\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000820004E006F00740020003700620069007400200063006800610072003A002000B0\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'+CMGS: 45\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °"))
+
+    # Multipart UCS2 SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=153\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F400088C050003[0-9A-F]{2}0201004E006F00740020003700620069007400200063006800610072003A002000B0002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E002E0020002E002E002E002E\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=37\r\n'}, {'IN': b'^0041[0-9A-F]{2}0B913306010203F4000818050003[0-9A-F]{2}0202002E002E002E002E002E002E0045004E0044\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °.......... ........ ........ ........ ........ ..........END"))
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_failed_send_sms_ucs2(self):
+    logging.debug("test_failed_send_sms_ucs2")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGS=45\r\n'}, {'IN': b'^0001[0-9A-F]{2}0B913306010203F4000820004E006F00740020003700620069007400200063006800610072003A002000B0\x1a$', 'mode': 'regex'},
+                               {'OUT': b'\r\n'}, {'OUT': b'>'}, {'OUT': b'\r\n'}, {'OUT': b'\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Not 7bit char: °"))
+
   # TODO: test_success_send_sms_text_mode
   # TODO: test_failed_send_sms_text_mode
-  # TODO: test_success_get_sms_all_mode
-  # TODO: test_failed_get_sms_all_mode
+  # TODO: test_success_get_sms_7bit ([normal/extended], normal, multipart, GMT-)
+  # TODO: test_failed_get_sms_7bit (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
+  # TODO: test_success_get_sms_ucs2 (normal, multipart)
+  # TODO: test_failed_get_sms_ucs2
+  # TODO: test_success_get_sms_text_mode (normal, from callback because go to pdu failed, multi sms, normal sms)
+  # TODO: test_failed_get_sms_text_mode
+  # TODO: test_success_get_sms_8bit (?)
+  # TODO: test_failed_get_sms_8bit (?)
   # TODO: test_all_delete_sms
 
 if __name__ == '__main__':
