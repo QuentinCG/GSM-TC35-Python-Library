@@ -254,7 +254,7 @@ gsm.close()
 ## Examples
 
 List of examples:
-  - <a target="_blank" href="https://github.com/QuentinCG/GSM-TC35-Python-Library/tree/master/examples/rest_api/README.md">Expose GSM module to REST-API</a>
+  - <a target="_blank" href="https://github.com/QuentinCG/GSM-TC35-Python-Library/blob/master/examples/rest_api/rest_api.py">Expose GSM module to REST-API</a>
 
 ## License
 
