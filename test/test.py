@@ -8,14 +8,19 @@
 
 import unittest
 from GSMTC35 import GSMTC35
-from unittest.mock import patch
 import logging
 import re
 import datetime
 import time
 import sys
 
-# Python 2.7/3 compatibility
+# Python 2.7/3  (Mock)
+if sys.version_info >= (3, 3):
+  from unittest.mock import patch
+else:
+  from mock import patch
+
+# Python 2.7/3 compatibility (StringIO)
 try:
   from StringIO import StringIO
 except ImportError:
