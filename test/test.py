@@ -2369,6 +2369,9 @@ class TestGSMTC35(unittest.TestCase):
                                # 7 bit normal SMS
                                {'OUT': b'+CMGL: 1,0,,35\r\n'},
                                {'OUT': b'07913396050046F6040B913306048216F100009111601043304012C2F03C3D06DD40E2347D0E9A36A7A010\r\n'},
+                               # 7 bit normal SMS (extended table)
+                               {'OUT': b'+CMGL: 7,0,,53\r\n'},
+                               {'OUT': b'07913396050036F9040B913306048216F100009111602061244026C2F03C3D06DD40E2341D346FCF41F7341D0D2AE3E96537B94C06D1C3627619B42903\r\n'},
                                # 7 bit extended SMS
                                {'OUT': b'+CMGL: 3,0,,159\r\n'},
                                {'OUT': b'07913396050036F8440B913306048216F1000091116010631340A00500033202018A787AD94D2E93413790384D074D9B5310AAD99CA640A15028140A815C2E97CBE572B95C2E97CBE572B95C2E90CBE572B95C2E97CBE572B95C2E97CBE572815C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C2E97CBE572B95C2097CBE572B95C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C\r\n'},
@@ -2395,6 +2398,12 @@ class TestGSMTC35(unittest.TestCase):
                          'phone_number': '+33604028611', 'date': '19/11/06', 'time': '01:34:03 GMT+1.0', 'charset': '7bit',
                          'sms': 'Basic 7 bits SMS !',
                          'sms_encoded': '42617369632037206269747320534D532021'
+                       },
+                       {
+                         'index': 7, 'status': 'REC UNREAD', 'service_center_type': 145, 'service_center_phone_number': '33695000639', 'phone_number_type': 145,
+                         'phone_number': '+33604028611', 'date': '19/11/06', 'time': '02:16:42 GMT+1.0', 'charset': '7bit',
+                         'sms': 'Basic 7 bit sms with extended table €',
+                         'sms_encoded': '426173696320372062697420736D73207769746820657874656E646564207461626C6520E282AC'
                        },
                        {'index': 3, 'status': 'REC UNREAD', 'service_center_type': 145,
                          'service_center_phone_number': '33695000638', 'phone_number_type': 145, 'phone_number': '+33604028611', 'date': '19/11/06',
