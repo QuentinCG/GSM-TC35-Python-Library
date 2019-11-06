@@ -2295,8 +2295,6 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getSMS(waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'ALL', 'time': '10:37:32 GMT+1.0'}])
 
-  # TODO: test_success_get_sms_text_mode (normal, from callback because go to pdu failed, multi sms, normal sms)
-
   @patch('serial.Serial', new=MockSerial)
   def test_all_get_sms_text_mode(self):
     logging.debug("test_all_get_sms_text_mode")
@@ -2389,7 +2387,7 @@ class TestGSMTC35(unittest.TestCase):
                                # 8 bit extended SMS
                                # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
                                {'OUT': b'OK\r\n'},
-                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'}])
     self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.UNREAD_SMS, waiting_time_sec=0),
                      [
                        {
@@ -2435,6 +2433,49 @@ class TestGSMTC35(unittest.TestCase):
                        }
                      ])
 
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0),[])
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0),[])
+
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_failed_get_sms_7bit_8bit_ucs2(self):
+    logging.debug("test_failed_get_sms_7bit_8bit_ucs2")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # PDU not hexa content
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'+CMGL: 1,0,,35\r\n'},
+                               {'OUT': b'NOT HEXA *snif*\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0), [])
+
+    # PDU not valid
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'+CMGL: 1,0,,35\r\n'},
+                               {'OUT': b'96456465A465A56BA46DFABABABAADAB96456465A465A56BA46DFABABABAADAB\r\n'},
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0), [])
+
+    # Basic error
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               {'OUT': b'ERROR\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0), [])
+
   @patch('serial.Serial', new=MockSerial)
   def test_all_delete_sms(self):
     logging.debug("test_all_delete_sms")
@@ -2461,10 +2502,6 @@ class TestGSMTC35(unittest.TestCase):
                                {'OUT': b'07913396050036F6440B913306048216F10008911160107393408C0500033302010045007800740065006E0064006500640020005500430053003200200053004D005300200028004D004D005300290020007C00B0002E00B0007C0020002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E\r\n'},
                                {'OUT': b'+CMGL: 6,0,,75\r\n'},
                                {'OUT': b'07913396050036F6440B913306048216F1000891116010730440380500033302020045004E0044005300650063006F006E00640020007000610072007400200068006500720065002000B0003D00B000200021\r\n'},
-                               # 8 bit normal SMS
-                               # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
-                               # 8 bit extended SMS
-                               # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
                                {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGD=1\r\n'}, {'OUT': b'OK\r\n'},
@@ -2494,10 +2531,6 @@ class TestGSMTC35(unittest.TestCase):
                                {'OUT': b'07913396050036F6440B913306048216F10008911160107393408C0500033302010045007800740065006E0064006500640020005500430053003200200053004D005300200028004D004D005300290020007C00B0002E00B0007C0020002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E\r\n'},
                                {'OUT': b'+CMGL: 6,0,,75\r\n'},
                                {'OUT': b'07913396050036F6440B913306048216F1000891116010730440380500033302020045004E0044005300650063006F006E00640020007000610072007400200068006500720065002000B0003D00B000200021\r\n'},
-                               # 8 bit normal SMS
-                               # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
-                               # 8 bit extended SMS
-                               # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
                                {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGD=1\r\n'}, {'OUT': b'OK\r\n'},
@@ -2507,8 +2540,6 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGD=5\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGD=6\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertFalse(gsm.deleteSMS())
-
-  # TODO: test_failed_get_sms_7bit_8bit_ucs2 (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
 
 if __name__ == '__main__':
   logger = logging.getLogger()
