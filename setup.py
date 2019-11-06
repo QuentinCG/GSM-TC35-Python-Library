@@ -38,4 +38,6 @@ setup(
     packages=["GSMTC35"],
     platforms='any',
     install_requires=["pyserial"],
+    test_require=["mock"],
+    test_suite="tests"
 )
