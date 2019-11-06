@@ -2193,8 +2193,8 @@ class TestGSMTC35(unittest.TestCase):
     self.assertFalse(gsm.sendSMS(phone_number="+33601020304", msg="Text mode SMS", network_delay_sec=0))
 
   @patch('serial.Serial', new=MockSerial)
-  def test_success_get_sms_all_type(self):
-    logging.debug("test_success_get_sms_all_type")
+  def test_all_get_sms_all_type(self):
+    logging.debug("test_all_get_sms_all_type")
     gsm = GSMTC35.GSMTC35()
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
     self.assertTrue(gsm.setup(_port="COM_FAKE"))
@@ -2295,14 +2295,114 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getSMS(waiting_time_sec=0), [{'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145, 'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2', 'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'ALL', 'time': '10:37:32 GMT+1.0'}])
 
-  # TODO: test_success_get_sms_7bit ([normal/extended], normal, multipart, GMT-)
-  # TODO: test_failed_get_sms_7bit (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
-  # TODO: test_success_get_sms_ucs2 (normal, multipart)
-  # TODO: test_failed_get_sms_ucs2
   # TODO: test_success_get_sms_text_mode (normal, from callback because go to pdu failed, multi sms, normal sms)
-  # TODO: test_failed_get_sms_text_mode
-  # TODO: test_success_get_sms_8bit (?)
-  # TODO: test_failed_get_sms_8bit (?)
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_get_sms_text_mode(self):
+    logging.debug("test_all_get_sms_text_mode")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # No SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGL="ALL"\r\n'},
+                               {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(force_text_mode=True, waiting_time_sec=0),[])
+
+    # 2 SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGL="ALL"\r\n'},
+                               {'OUT': b'+CMGL: 1,"REC UNREAD","+31628870634",,"11/01/09,10:26:26+04"\r\n'},
+                               {'OUT': b'This is text message 1\r\n'},
+                               {'OUT': b'+CMGL: 2,"REC UNREAD","+31628870634",,"11/01/09,10:26:49+04"\r\n'},
+                               {'OUT': b'This is text message 2\r\n'},
+                               {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(force_text_mode=True, waiting_time_sec=0),
+                      [
+                        {
+                          'charset': 'TC35TextModeInconsistentCharset', 'date': '11/01/09', 'index': 1,
+                          'phone_number': '+31628870634', 'sms': 'This is text message 1', 'status': 'REC UNREAD',
+                          'time': '10:26:26+04'
+                        },
+                        {
+                          'charset': 'TC35TextModeInconsistentCharset', 'date': '11/01/09', 'index': 2,
+                          'phone_number': '+31628870634', 'sms': 'This is text message 2', 'status': 'REC UNREAD',
+                          'time': '10:26:49+04'
+                        }
+                      ]
+                    )
+
+    # Fallback to text mode because pdu mode failed
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGL="ALL"\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0),[])
+
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGL="ALL"\r\n'},
+                               {'OUT': b'+CMGL: 1,"REC UNREAD","+31628870634",,"11/01/09,10:26:26+04"\r\n'},
+                               {'OUT': b'This is text message 1\r\n'},
+                               {'OUT': b'+CMGL: 2,"REC UNREAD","+31628870634",,"11/01/09,10:26:49+04"\r\n'},
+                               {'OUT': b'This is text message 2\r\n'},
+                               {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(waiting_time_sec=0),
+                      [
+                        {
+                          'charset': 'TC35TextModeInconsistentCharset', 'date': '11/01/09', 'index': 1,
+                          'phone_number': '+31628870634', 'sms': 'This is text message 1', 'status': 'REC UNREAD',
+                          'time': '10:26:26+04'
+                        },
+                        {
+                          'charset': 'TC35TextModeInconsistentCharset', 'date': '11/01/09', 'index': 2,
+                          'phone_number': '+31628870634', 'sms': 'This is text message 2', 'status': 'REC UNREAD',
+                          'time': '10:26:49+04'
+                        }
+                      ]
+                    )
+
+  @patch('serial.Serial', new=MockSerial)
+  def test_success_get_sms_7bit_8bit_ucs2(self):
+    logging.debug("test_success_get_sms_7bit_8bit_ucs2")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # Receiving Normal SMS + Extended in 7 bit and ucs2 SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=0\r\n'},
+                               # 7 bit normal SMS
+                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
+                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               # 7 bit extended SMS
+                               # TODO
+                               # UCS2 normal SMS
+                               # TODO
+                               # UCS2 extended SMS
+                               # TODO
+                               # 8 bit normal SMS
+                               # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
+                               # 8 bit extended SMS
+                               # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.UNREAD_SMS, waiting_time_sec=0),
+                     [
+                       # 7 bit normal SMS
+                       {'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145,
+                       'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2',
+                       'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD',
+                       'time': '10:37:32 GMT+1.0'}
+                       # 7 bit extended SMS
+                       # TODO
+                       # UCS2 normal SMS
+                       # TODO
+                       # UCS2 extended SMS
+                       # TODO
+                       # 8 bit normal SMS
+                       # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
+                       # 8 bit extended SMS
+                       # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
+                     ])
+
+  # TODO: test_failed_get_sms_7bit_8bit_ucs2 (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
   # TODO: test_all_delete_sms
 
 if __name__ == '__main__':
