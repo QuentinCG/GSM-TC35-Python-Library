@@ -190,6 +190,9 @@ class TestGSMTC35(unittest.TestCase):
     Get test begining timestamp (used to show time to execute test at the end)
     """
     self.startTime = time.time()
+    
+    # Show full difference between 2 values that we wanted to be equal
+    self.maxDiff = None
 
   def tearDown(self):
     """
