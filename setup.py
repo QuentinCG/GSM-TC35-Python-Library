@@ -38,7 +38,7 @@ setup(
     packages=["GSMTC35"],
     platforms='any',
     install_requires=["pyserial"],
-    test_require=["mock"],
+    tests_require=["mock"],
     test_suite="tests",
     extras_require={
       'restapi': ["flask", "flask_restful", "flask-httpauth", "pyopenssl"]
