@@ -39,5 +39,8 @@ setup(
     platforms='any',
     install_requires=["pyserial"],
     test_require=["mock"],
-    test_suite="tests"
+    test_suite="tests",
+    extras_require={
+      'restapi': ["flask", "flask_restful", "flask-httpauth", "pyopenssl"]
+    }
 )

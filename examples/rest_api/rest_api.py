@@ -17,6 +17,7 @@
 
   Requirement:
    - Install (pip install) 'flask', 'flask_restful' and 'flask-httpauth', ['pyopenssl']
+     (or `pip install -e ".[restapi]"` from root folder)
 
   TODO:
    - Get config as file parameters (using 'getopt') instead of hardcoded in file

@@ -21,6 +21,8 @@ script:
   - coverage run -p setup.py test
   # Prepare results before sending them back to codecov
   - coverage combine
+  # Check that we can get rest api example dependencies
+  - pip install -e ".[restapi]"
 
 # Push the results back to codecov
 after_success:
