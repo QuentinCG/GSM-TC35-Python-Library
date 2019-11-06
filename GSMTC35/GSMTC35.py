@@ -38,7 +38,7 @@ __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
 __copyright__ = "Copyright Quentin Comte-Gaz (2019)"
 __python_version__ = "3.+"
-__version__ = "1.4 (2019/09/23)"
+__version__ = "2.0 (2019/11/06)"
 __status__ = "Usable for any project"
 
 import binascii
