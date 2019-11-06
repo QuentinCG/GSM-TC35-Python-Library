@@ -2365,18 +2365,25 @@ class TestGSMTC35(unittest.TestCase):
     MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
     self.assertTrue(gsm.setup(_port="COM_FAKE"))
 
-    # Receiving Normal SMS + Extended in 7 bit and ucs2 SMS
+    # Receiving Normal SMS + Extended in 7 bit and ucs2 (and 8 bit) SMS
     MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
                                {'IN': b'AT+CMGL=0\r\n'},
                                # 7 bit normal SMS
-                               {'OUT': b'+CMGL: 9,0,,39\r\n'},
-                               {'OUT': b'07911326040011F5240B911326880736F40000111081017323401654747A0E4ACF41F4329E0E6A97E7F3F0B90C9201\r\n'},
+                               {'OUT': b'+CMGL: 1,0,,35\r\n'},
+                               {'OUT': b'07913396050046F6040B913306048216F100009111601043304012C2F03C3D06DD40E2347D0E9A36A7A010\r\n'},
                                # 7 bit extended SMS
-                               # TODO
+                               {'OUT': b'+CMGL: 3,0,,159\r\n'},
+                               {'OUT': b'07913396050036F8440B913306048216F1000091116010631340A00500033202018A787AD94D2E93413790384D074D9B5310AAD99CA640A15028140A815C2E97CBE572B95C2E97CBE572B95C2E90CBE572B95C2E97CBE572B95C2E97CBE572815C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C2E97CBE572B95C2097CBE572B95C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C\r\n'},
+                               {'OUT': b'+CMGL: 4,0,,46\r\n'},
+                               {'OUT': b'07913396050036F8440B913306048216F10000911160106323401E0500033202025C2E97ABE8244ECBE3B79B0C8287E57410BA2C2F03\r\n'},
                                # UCS2 normal SMS
-                               # TODO
+                               {'OUT': b'+CMGL: 2,0,,63\r\n'},
+                               {'OUT': b'07913396050046F4040B913306048216F10008911160104345402C004200610073006900630020005500430053003200200053004D0053002000210020007C00B0002E00B0007C\r\n'},
                                # UCS2 extended SMS
-                               # TODO
+                               {'OUT': b'+CMGL: 5,0,,159\r\n'},
+                               {'OUT': b'07913396050036F6440B913306048216F10008911160107393408C0500033302010045007800740065006E0064006500640020005500430053003200200053004D005300200028004D004D005300290020007C00B0002E00B0007C0020002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E\r\n'},
+                               {'OUT': b'+CMGL: 6,0,,75\r\n'},
+                               {'OUT': b'07913396050036F6440B913306048216F1000891116010730440380500033302020045004E0044005300650063006F006E00640020007000610072007400200068006500720065002000B0003D00B000200021\r\n'},
                                # 8 bit normal SMS
                                # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
                                # 8 bit extended SMS
@@ -2385,21 +2392,47 @@ class TestGSMTC35(unittest.TestCase):
                                {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'}])
     self.assertEqual(gsm.getSMS(sms_type=GSMTC35.GSMTC35.eSMS.UNREAD_SMS, waiting_time_sec=0),
                      [
-                       # 7 bit normal SMS
-                       {'charset': '7bit', 'date': '11/01/18', 'index': 9, 'phone_number': '+31628870634', 'phone_number_type': 145,
-                       'service_center_phone_number': '31624000115', 'service_center_type': 145, 'sms': 'This is text message 2',
-                       'sms_encoded': '546869732069732074657874206D6573736167652032', 'status': 'REC UNREAD',
-                       'time': '10:37:32 GMT+1.0'}
-                       # 7 bit extended SMS
-                       # TODO
-                       # UCS2 normal SMS
-                       # TODO
-                       # UCS2 extended SMS
-                       # TODO
-                       # 8 bit normal SMS
-                       # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
-                       # 8 bit extended SMS
-                       # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
+                       {
+                         'index': 1, 'status': 'REC UNREAD', 'service_center_type': 145, 'service_center_phone_number': '33695000646', 'phone_number_type': 145,
+                         'phone_number': '+33604028611', 'date': '19/11/06', 'time': '01:34:03 GMT+1.0', 'charset': '7bit',
+                         'sms': 'Basic 7 bits SMS !',
+                         'sms_encoded': '42617369632037206269747320534D532021'
+                       },
+                       {'index': 3, 'status': 'REC UNREAD', 'service_center_type': 145,
+                         'service_center_phone_number': '33695000638', 'phone_number_type': 145, 'phone_number': '+33604028611', 'date': '19/11/06',
+                         'time': '01:36:31 GMT+1.0', 'charset': '7bit', 'header_iei': 0, 'header_ie_data': '320201', 'header_multipart_ref_id': 50,
+                         'header_multipart_nb_of_part': 2, 'header_multipart_current_part_nb': 1,
+                         'sms': 'Extended 7 bit SMS (MMS) !!!!!! .................. .................... ...................... .................. ............................ ..........',
+                         'sms_encoded': '457874656E64656420372062697420534D5320284D4D532920212121212121202E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E202E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E202E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E202E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E202E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E202E2E2E2E2E2E2E2E2E2E'
+                       },
+                       {
+                         'index': 4, 'status': 'REC UNREAD', 'service_center_type': 145, 'service_center_phone_number': '33695000638',
+                         'phone_number_type': 145, 'phone_number': '+33604028611', 'date': '19/11/06', 'time': '01:36:32 GMT+1.0',
+                         'charset': '7bit', 'header_iei': 0, 'header_ie_data': '320202', 'header_multipart_ref_id': 50,
+                         'header_multipart_nb_of_part': 2, 'header_multipart_current_part_nb': 2,
+                         'sms': '....ENDSecond part here',
+                         'sms_encoded': '2E2E2E2E454E445365636F6E6420706172742068657265'
+                       },
+                       {
+                         'index': 2, 'status': 'REC UNREAD', 'service_center_type': 145, 'service_center_phone_number': '33695000644', 'phone_number_type': 145,
+                         'phone_number': '+33604028611', 'date': '19/11/06', 'time': '01:34:54 GMT+1.0', 'charset': 'utf16-be',
+                         'sms': 'Basic UCS2 SMS ! |°.°|',
+                         'sms_encoded': '4200610073006900630020005500430053003200200053004D0053002000210020007C00B0002E00B0007C'
+                       },
+                       {
+                         'index': 5, 'status': 'REC UNREAD', 'service_center_type': 145, 'service_center_phone_number': '33695000636', 'phone_number_type': 145,
+                         'phone_number': '+33604028611', 'date': '19/11/06', 'time': '01:37:39 GMT+1.0', 'charset': 'utf16-be', 'header_iei': 0,
+                         'header_ie_data': '330201', 'header_multipart_ref_id': 51, 'header_multipart_nb_of_part': 2, 'header_multipart_current_part_nb': 1,
+                         'sms': 'Extended UCS2 SMS (MMS) |°.°| ............................. .......',
+                         'sms_encoded': '0045007800740065006E0064006500640020005500430053003200200053004D005300200028004D004D005300290020007C00B0002E00B0007C0020002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E'
+                       },
+                       {
+                         'index': 6, 'status': 'REC UNREAD', 'service_center_type': 145, 'service_center_phone_number': '33695000636', 'phone_number_type': 145,
+                         'phone_number': '+33604028611', 'date': '19/11/06', 'time': '01:37:40 GMT+1.0', 'charset': 'utf16-be', 'header_iei': 0, 'header_ie_data': '330202',
+                         'header_multipart_ref_id': 51, 'header_multipart_nb_of_part': 2, 'header_multipart_current_part_nb': 2,
+                         'sms': 'ENDSecond part here °=° !',
+                         'sms_encoded': '0045004E0044005300650063006F006E00640020007000610072007400200068006500720065002000B0003D00B000200021'
+                       }
                      ])
 
   # TODO: test_failed_get_sms_7bit_8bit_ucs2 (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
