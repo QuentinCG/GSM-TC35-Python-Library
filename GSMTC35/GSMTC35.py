@@ -2105,8 +2105,12 @@ class GSMTC35:
           try:
             decoded_data = GSMTC35.__decodePduSms(line, decode_sms)
             is_decoded = True
-          except ValueError:
-            logging.error("One of the SMS is not valid, sms hexa content: \""+str(line)+"\"")
+          except ValueError as e:
+            logging.error("One of the SMS is not valid, sms hexa content: \""+str(line)+"\": "+str(e))
+            decoded_data = {}
+          except IndexError as e:
+            logging.error("One of the SMS is not valid, sms hexa content: \""+str(line)+"\": "+str(e))
+            decoded_data = {}
 
           if is_decoded and ("sms" in decoded_data) and ("phone_number" in decoded_data) \
              and ("date" in decoded_data) and ("time" in decoded_data) and ("charset" in decoded_data):
