@@ -53,6 +53,8 @@ Non-exhaustive list of shell commands:
   - Get the port name (you can find it out by calling `python GSMTC35/GSMTC35.py --help` from the root of this repository)
   - Load your shell or python script
 
+Note: If you want to install test dependency and execute the library test, the command is `python setup.py test`
+
 ## How to use in shell
 
 ```shell
@@ -105,7 +107,7 @@ Example of python script using this library:
 
 ```python
 import sys
-from GSMTC35 import GSMTC35
+from GSMTC35.GSMTC35 import GSMTC35
 
 gsm = GSMTC35()
 pin = "1234"
@@ -186,11 +188,11 @@ print("Added contact to GSM module phonebook: "
 entries = gsm.getPhonebookEntries(GSMTC35.ePhonebookType.GSM_MODULE)
 print("List of stored contacts:")
 for entry in entries:
-  print(str(entry['index']+": "+str(entry['contact_name'])+" -> "+str(entry['phone_number'])))
+  print(str(entry['index'])+": "+str(entry['contact_name'])+" -> "+str(entry['phone_number']))
 
 # Delete all GSM phonebook entries:
 print("Deleted all contact from GSM module phonebook: "
-      +str(gsm.agsm.deleteAllEntriesFromPhonebook(GSMTC35.ePhonebookType.GSM_MODULE)))
+      +str(gsm.deleteAllEntriesFromPhonebook(GSMTC35.ePhonebookType.GSM_MODULE)))
 
 # Check if someone is calling
 print("Incoming call: "+str(gsm.isSomeoneCalling()))
@@ -210,7 +212,7 @@ new_pin = pin # (Just for test)
 print("SIM Pin changed: "+str(gsm.changePin(pin, new_pin)))
 
 # Set module clock to current date
-print("Clock set: "+gsm.setInternalClockToCurrentDate())
+print("Clock set: "+str(gsm.setInternalClockToCurrentDate()))
 
 # Show additional information
 print("GSM module Manufacturer ID: "+str(gsm.getManufacturerId()))
