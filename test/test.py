@@ -2435,8 +2435,80 @@ class TestGSMTC35(unittest.TestCase):
                        }
                      ])
 
+  @patch('serial.Serial', new=MockSerial)
+  def test_all_delete_sms(self):
+    logging.debug("test_all_delete_sms")
+    gsm = GSMTC35.GSMTC35()
+    MockSerial.initializeMock(MockSerial.getDefaultConfigForSetup())
+    self.assertTrue(gsm.setup(_port="COM_FAKE"))
+
+    # Delete Normal SMS + Extended in 7 bit and ucs2 SMS
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               # 7 bit normal SMS
+                               {'OUT': b'+CMGL: 1,0,,35\r\n'},
+                               {'OUT': b'07913396050046F6040B913306048216F100009111601043304012C2F03C3D06DD40E2347D0E9A36A7A010\r\n'},
+                               # 7 bit extended SMS
+                               {'OUT': b'+CMGL: 3,0,,159\r\n'},
+                               {'OUT': b'07913396050036F8440B913306048216F1000091116010631340A00500033202018A787AD94D2E93413790384D074D9B5310AAD99CA640A15028140A815C2E97CBE572B95C2E97CBE572B95C2E90CBE572B95C2E97CBE572B95C2E97CBE572815C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C2E97CBE572B95C2097CBE572B95C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C\r\n'},
+                               {'OUT': b'+CMGL: 4,0,,46\r\n'},
+                               {'OUT': b'07913396050036F8440B913306048216F10000911160106323401E0500033202025C2E97ABE8244ECBE3B79B0C8287E57410BA2C2F03\r\n'},
+                               # UCS2 normal SMS
+                               {'OUT': b'+CMGL: 2,0,,63\r\n'},
+                               {'OUT': b'07913396050046F4040B913306048216F10008911160104345402C004200610073006900630020005500430053003200200053004D0053002000210020007C00B0002E00B0007C\r\n'},
+                               # UCS2 extended SMS
+                               {'OUT': b'+CMGL: 5,0,,159\r\n'},
+                               {'OUT': b'07913396050036F6440B913306048216F10008911160107393408C0500033302010045007800740065006E0064006500640020005500430053003200200053004D005300200028004D004D005300290020007C00B0002E00B0007C0020002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E\r\n'},
+                               {'OUT': b'+CMGL: 6,0,,75\r\n'},
+                               {'OUT': b'07913396050036F6440B913306048216F1000891116010730440380500033302020045004E0044005300650063006F006E00640020007000610072007400200068006500720065002000B0003D00B000200021\r\n'},
+                               # 8 bit normal SMS
+                               # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
+                               # 8 bit extended SMS
+                               # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=3\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=4\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=2\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=5\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=6\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertTrue(gsm.deleteSMS())
+
+    # Error while deleting sms will try to delete others
+    MockSerial.initializeMock([{'IN': b'AT+CMGF=0\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGL=4\r\n'},
+                               # 7 bit normal SMS
+                               {'OUT': b'+CMGL: 1,0,,35\r\n'},
+                               {'OUT': b'07913396050046F6040B913306048216F100009111601043304012C2F03C3D06DD40E2347D0E9A36A7A010\r\n'},
+                               # 7 bit extended SMS
+                               {'OUT': b'+CMGL: 3,0,,159\r\n'},
+                               {'OUT': b'07913396050036F8440B913306048216F1000091116010631340A00500033202018A787AD94D2E93413790384D074D9B5310AAD99CA640A15028140A815C2E97CBE572B95C2E97CBE572B95C2E90CBE572B95C2E97CBE572B95C2E97CBE572815C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C2E97CBE572B95C2097CBE572B95C2E97CBE572B95C2E97CBE572B95C2E97CBE502B95C2E97CBE572B95C\r\n'},
+                               {'OUT': b'+CMGL: 4,0,,46\r\n'},
+                               {'OUT': b'07913396050036F8440B913306048216F10000911160106323401E0500033202025C2E97ABE8244ECBE3B79B0C8287E57410BA2C2F03\r\n'},
+                               # UCS2 normal SMS
+                               {'OUT': b'+CMGL: 2,0,,63\r\n'},
+                               {'OUT': b'07913396050046F4040B913306048216F10008911160104345402C004200610073006900630020005500430053003200200053004D0053002000210020007C00B0002E00B0007C\r\n'},
+                               # UCS2 extended SMS
+                               {'OUT': b'+CMGL: 5,0,,159\r\n'},
+                               {'OUT': b'07913396050036F6440B913306048216F10008911160107393408C0500033302010045007800740065006E0064006500640020005500430053003200200053004D005300200028004D004D005300290020007C00B0002E00B0007C0020002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E002E0020002E002E002E002E002E002E002E\r\n'},
+                               {'OUT': b'+CMGL: 6,0,,75\r\n'},
+                               {'OUT': b'07913396050036F6440B913306048216F1000891116010730440380500033302020045004E0044005300650063006F006E00640020007000610072007400200068006500720065002000B0003D00B000200021\r\n'},
+                               # 8 bit normal SMS
+                               # TODO: I have no example of 8 bit SMS, feel free to send it to me if you have one !
+                               # 8 bit extended SMS
+                               # TODO: I have no example of 8 bit MMS, feel free to send it to me if you have one !
+                               {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGF=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=1\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=3\r\n'}, {'OUT': b'ERROR\r\n'},
+                               {'IN': b'AT+CMGD=4\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=2\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=5\r\n'}, {'OUT': b'OK\r\n'},
+                               {'IN': b'AT+CMGD=6\r\n'}, {'OUT': b'OK\r\n'}])
+    self.assertFalse(gsm.deleteSMS())
+
   # TODO: test_failed_get_sms_7bit_8bit_ucs2 (Error, PDU not hexa content, invalid data coding scheme, invalid encoding, at least one sms invalid, impossible to go back to text mode, all data coding scheme possible)
-  # TODO: test_all_delete_sms
 
 if __name__ == '__main__':
   logger = logging.getLogger()
