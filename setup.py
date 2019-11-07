@@ -32,7 +32,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',      
+        'Programming Language :: Python :: 3.8',
     ],
     keywords='gsm pdu tc35 mc35 at sms mms call phone pin puk phonebook imei imsi ucs2 7bit forward unlock lock',
     packages=["GSMTC35"],
