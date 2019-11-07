@@ -6,7 +6,7 @@ with io.open('README.md', 'r', encoding='utf-8') as readme_file:
 
 setup(
     name='GSMTC35',
-    version='1.4',
+    version='2.0',
     description='GSM TC35/MC35 controller (Send/Receive SMS/MMS/Call and a lot more!)',
     long_description=readme,
     url='https://github.com/QuentinCG/GSM-TC35-Python-Library',
