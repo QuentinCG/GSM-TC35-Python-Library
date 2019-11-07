@@ -108,17 +108,17 @@ class InternalDB():
         request = "DELETE FROM sms"
         params = []
         # Potential conditions
-        if (sms_id != None) or (phone_number != None) or (before_timestamp != None):
+        if (sms_id is not None) or (phone_number is not None) or (before_timestamp is not None):
           request += " WHERE "
-          if (sms_id != None):
+          if (sms_id is not None):
             request += " id = ?"
             params.append(int(sms_id))
-          if (phone_number != None):
+          if (phone_number is not None):
             if len(params) > 0:
               request += " AND"
             request += " phone_number = ?"
             params.append(str(phone_number))
-          if (before_timestamp != None):
+          if (before_timestamp is not None):
             if len(params) > 0:
               request += " AND"
             request += " timestamp <= ?"
@@ -157,18 +157,18 @@ class InternalDB():
         request = "SELECT id, timestamp, received, phone_number, content FROM sms"
         params = []
         # Potential conditions
-        if (phone_number != None) or (after_timestamp != None):
+        if (phone_number is not None) or (after_timestamp is not None):
           request += " WHERE"
-          if (phone_number != None):
+          if (phone_number is not None):
             request += " phone_number = ?"
             params.append(str(phone_number))
-          if (after_timestamp != None):
-            if (phone_number != None):
+          if (after_timestamp is not None):
+            if (phone_number is not None):
               request += " AND"
             request += " timestamp >= ?"
             params.append(int(after_timestamp))
         # Potential limit
-        if limit != None:
+        if limit is not None:
           request += " LIMIT ?"
           params.append(int(limit))
         # Order

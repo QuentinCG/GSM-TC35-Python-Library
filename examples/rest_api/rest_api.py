@@ -212,7 +212,7 @@ class Call(Resource):
       - (str, optional) 'error': Error explanation if request failed
     """
     _phone_number = request.headers.get('phone_number', default = None, type = str)
-    if _phone_number == None:
+    if _phone_number is None:
       return {"result": False, "error": "Please specify a phone number (phone_number)"}
     _hide_phone_number = request.headers.get('hide_phone_number', default = "false", type = str)
     _hide_phone_number = checkBoolean(_hide_phone_number)
@@ -338,10 +338,10 @@ class Sms(Resource):
       - (str, optional) 'error': Error explanation if request failed
     """
     _phone_number = request.headers.get('phone_number', default = None, type = str)
-    if _phone_number == None:
+    if _phone_number is None:
       return {"result": False, "error": "Please specify a phone number (phone_number)"}
     _content = request.headers.get('content', default = None, type = str)
-    if _content == None:
+    if _content is None:
       return {"result": False, "error": "Please specify a SMS content (content)"}
     _is_in_hexa_format = request.headers.get('is_content_in_hexa_format', default = "false", type = str)
     _is_in_hexa_format = checkBoolean(_is_in_hexa_format)
@@ -354,7 +354,9 @@ class Sms(Resource):
           return {"result": False, "error": "Failed to decode content"}
       status_send_sms = gsm.sendSMS(_phone_number, _content)
       if status_send_sms:
-        if not api_database.insertSMS(timestamp=int(time.time()), received=False, phone_number=str(_phone_number), content=str(binascii.hexlify(_content.encode()).decode())):
+        if not api_database.insertSMS(timestamp=int(time.time()), received=False,
+                                      phone_number=str(_phone_number),
+                                      content=str(binascii.hexlify(_content.encode()).decode())):
           logging.warning("Failed to insert sent SMS into the database")
       return {"result": True, "status": status_send_sms}
     else:
@@ -411,7 +413,7 @@ class Info(Resource):
       - (str, optional) 'error': Error explanation if request failed
     """
     _request = request.headers.get('request', default = None, type = str)
-    if _request == None:
+    if _request is None:
       return {"result": False, "error": "'request' not specified"}
 
     valid_gsm, gsm, error = getGSM()
