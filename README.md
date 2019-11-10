@@ -1,5 +1,5 @@
 # GSM TC35 Python library
-[![Build Status](https://travis-ci.org/QuentinCG/GSM-TC35-Python-Library.svg?branch=master)](https://travis-ci.org/QuentinCG/GSM-TC35-Python-Library) [![codecov](https://codecov.io/gh/QuentinCG/GSM-TC35-Python-Library/branch/master/graph/badge.svg)](https://codecov.io/gh/QuentinCG/GSM-TC35-Python-Library) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7a2104d9938a493a8d1d4896e2bb0fe2)](https://www.codacy.com/manual/QuentinCG/GSM-TC35-Python-Library?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=QuentinCG/GSM-TC35-Python-Library&amp;utm_campaign=Badge_Grade) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/QuentinCG/GSM-TC35-Python-Library/blob/master/LICENSE.md) [![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/QuentinCG)
+[![PyPI version](https://badge.fury.io/py/GSMTC35.svg)](https://badge.fury.io/py/GSMTC35) [![Build Status](https://travis-ci.org/QuentinCG/GSM-TC35-Python-Library.svg?branch=master)](https://travis-ci.org/QuentinCG/GSM-TC35-Python-Library) [![codecov](https://codecov.io/gh/QuentinCG/GSM-TC35-Python-Library/branch/master/graph/badge.svg)](https://codecov.io/gh/QuentinCG/GSM-TC35-Python-Library) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7a2104d9938a493a8d1d4896e2bb0fe2)](https://www.codacy.com/manual/QuentinCG/GSM-TC35-Python-Library?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=QuentinCG/GSM-TC35-Python-Library&amp;utm_campaign=Badge_Grade) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/QuentinCG/GSM-TC35-Python-Library/blob/master/LICENSE.md) [![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/QuentinCG)
 
 ## What is it
 
@@ -48,7 +48,7 @@ Non-exhaustive list of shell commands:
 
 ## How to install (python script and shell)
 
-  - Install package calling `python setup.py install` from the root of this repository
+  - Install package calling `pip install GSMTC35` (or `python setup.py install` from the root of this repository)
   - Connect your GSM module to a serial port
   - Get the port name (you can find it out by calling `python GSMTC35/GSMTC35.py --help` from the root of this repository)
   - Load your shell or python script
