@@ -3,7 +3,6 @@ python:
   # Test python 2.7 version
   #- "2.7"
   # Test most used python 3 version
-  - "3.4"
   - "3.5"
   - "3.6"
   - "3.7"
