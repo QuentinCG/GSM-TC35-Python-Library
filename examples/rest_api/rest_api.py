@@ -27,9 +27,9 @@
 __author__ = 'Quentin Comte-Gaz'
 __email__ = "quentin@comte-gaz.com"
 __license__ = "MIT License"
-__copyright__ = "Copyright Quentin Comte-Gaz (2019)"
+__copyright__ = "Copyright Quentin Comte-Gaz (2024)"
 __python_version__ = "3.+"
-__version__ = "0.2 (2019/10/08)"
+__version__ = "0.2 (2024/09/13)"
 __status__ = "Can be used for test but not for production (not fully secured)"
 
 
